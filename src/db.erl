@@ -34,7 +34,9 @@ insert(K,V) ->
 q(list, Filter, Reduce) ->
   gen_server:call(?MODULE, {q, list, Filter, Reduce});
 q(match_spec, MatchSpec, Reduce) ->
-  gen_server:call(?MODULE, {q, match_spec, MatchSpec, Reduce}).
+  gen_server:call(?MODULE, {q, match_spec, MatchSpec, Reduce});
+q(dict, Filter, Reduce) ->
+  gen_server:call(?MODULE, {q, dict, Filter, Reduce}).
 
 get_all() ->
   gen_server:call(?MODULE, {get_all}).
@@ -76,6 +78,10 @@ handle_call({q, list, Filter, _Reduce}, _From, State) ->
 handle_call({q, match_spec, MatchSpec, _Reduce}, _From, State) ->
   CompiledMatchSpec = ets:match_spec_compile(MatchSpec),
   Results = ets:match_spec_run(State, CompiledMatchSpec),
+  {reply, {ok, Results}, State};
+
+handle_call({q, dict, Filter, _Reduce}, _From, State) ->
+  Results = dict_filter(Filter, State),
   {reply, {ok, Results}, State};
 
 handle_call({get_all}, _From, State) ->
@@ -125,3 +131,6 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+
+dict_filter(Filter, State) ->
+  [ Filter(K, V) || {K, V} <- State ].

@@ -10,20 +10,24 @@ test() ->
   db:start_link(),
 
   %% create some test data
-  K1 = {key,
-	{time,
-	 {year, 2008},
-	 {month, 1},
-	 {day, 1}},
-	{loc,
-	 {storenum, 1},
-	 {storename, "Joe's Plumbing Store 1"},
-	 {market,
-	  {num, 1},
-	  {name, "Atlanta"}}},
-	{product,
-	 {name, "faucet repair"}}
-       },
+  Time = dict:from_list([{year, 2008}, {month, 1}, {day, 1}]),
+  Loc = dict:from_list([{storenum, 1}, {storename, "Joe's Plumbing Store 1"}]),
+  Product = dict:store(name, "faucet repair", dict:new()),
+  K1 = dict:from_list([{time, Time}, {loc, Loc}, {product, Product}]),
+%%   K1 = {key,
+%% 	{time,
+%% 	 {year, 2008},
+%% 	 {month, 1},
+%% 	 {day, 1}},
+%% 	{loc,
+%% 	 {storenum, 1},
+%% 	 {storename, "Joe's Plumbing Store 1"},
+%% 	 {market,
+%% 	  {num, 1},
+%% 	  {name, "Atlanta"}}},
+%% 	{product,
+%% 	 {name, "faucet repair"}}
+%%        },
   V1 = {val,
 	{sales, 100.00},
 	{hours, 2.0},
@@ -37,8 +41,13 @@ test() ->
   io:format("All before query   : ~p~n", [All1]),
 
   %% test a query
-  Filter = fun(_Records) ->
-	       not_implemented_yet
+  %%  This Filter fun searches the Key, which is a dict, looking for time as a
+  %%  key in the dict.  If it's present, we return the value
+  Filter = fun(K, V) ->
+	       case dict:find(time, K) of
+		 error -> error;
+		 _ -> V
+	       end
 	   end,
   Reduce = fun(_Records) ->
 	       not_implemented_yet
