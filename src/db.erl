@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, insert/2, get_all/0, q/2, truncate/0]).
+-export([start_link/0, insert/2, get_all/0, q/3, truncate/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -31,8 +31,10 @@ start_link() ->
 insert(K,V) ->
   gen_server:call(?MODULE, {insert, K, V}).
 
-q(Filter, Reduce) ->
-    gen_server:call(?MODULE, {q, Filter, Reduce}).
+q(list, Filter, Reduce) ->
+  gen_server:call(?MODULE, {q, list, Filter, Reduce});
+q(match_spec, MatchSpec, Reduce) ->
+  gen_server:call(?MODULE, {q, match_spec, MatchSpec, Reduce}).
 
 get_all() ->
   gen_server:call(?MODULE, {get_all}).
@@ -67,8 +69,13 @@ handle_call({insert, K, V}, _From, State) ->
   NewState = [{K,V} | State],
   {reply, {ok, insert, State}, NewState};
 
-handle_call({q, Filter, _Reduce}, _From, State) ->
+handle_call({q, list, Filter, _Reduce}, _From, State) ->
   Results = lists:filter(Filter, State),
+  {reply, {ok, Results}, State};
+
+handle_call({q, match_spec, MatchSpec, _Reduce}, _From, State) ->
+  CompiledMatchSpec = ets:match_spec_compile(MatchSpec),
+  Results = ets:match_spec_run(State, CompiledMatchSpec),
   {reply, {ok, Results}, State};
 
 handle_call({get_all}, _From, State) ->
