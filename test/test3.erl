@@ -10,24 +10,10 @@ test() ->
   db:start_link(),
 
   %% create some test data
-  Time = dict:from_list([{year, 2008}, {month, 1}, {day, 1}]),
-  Loc = dict:from_list([{storenum, 1}, {storename, "Joe's Plumbing Store 1"}]),
-  Product = dict:store(name, "faucet repair", dict:new()),
-  K1 = dict:from_list([{time, Time}, {loc, Loc}, {product, Product}]),
-%%   K1 = {key,
-%% 	{time,
-%% 	 {year, 2008},
-%% 	 {month, 1},
-%% 	 {day, 1}},
-%% 	{loc,
-%% 	 {storenum, 1},
-%% 	 {storename, "Joe's Plumbing Store 1"},
-%% 	 {market,
-%% 	  {num, 1},
-%% 	  {name, "Atlanta"}}},
-%% 	{product,
-%% 	 {name, "faucet repair"}}
-%%        },
+  Time1 = dict:from_list([{year, 2008}, {month, 1}, {day, 1}]),
+  Loc1 = dict:from_list([{storenum, 1}, {storename, "Joe's Plumbing Store 1"}]),
+  Product1 = dict:store(name, "faucet repair", dict:new()),
+  K1 = dict:from_list([{time, Time1}, {loc, Loc1}, {product, Product1}]),
   V1 = {val,
 	{sales, 100.00},
 	{hours, 2.0},
@@ -35,6 +21,18 @@ test() ->
 	{total, 108.00}
        },
   db:insert(K1,V1),
+
+  Time2 = dict:from_list([{year, 2008}, {month, 1}, {day, 2}]),
+  Loc2 = dict:from_list([{storenum, 1}, {storename, "Joe's Plumbing Store 1"}]),
+  Product2 = dict:store(name, "faucet repair", dict:new()),
+  K2 = dict:from_list([{time, Time2}, {loc, Loc2}, {product, Product2}]),
+  V2 = {val,
+	{sales, 200.00},
+	{hours, 4.0},
+	{tax, 16.00},
+	{total, 216.00}
+       },
+  db:insert(K2,V2),
 
 
   All1 = db:get_all(),
