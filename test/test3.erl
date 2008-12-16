@@ -6,7 +6,7 @@
 
 %% let's test dicts as our key structure
 test() ->
-  io:format("Test 3~n"),
+  io:format("Test 3 - dict~n"),
   db:start_link(),
 
   %% create some test data
