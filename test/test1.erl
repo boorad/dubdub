@@ -5,7 +5,7 @@
 -import(db).
 
 test() ->
-  io:format("Test 1~n"),
+  io:format("Test 1 - Strings~n"),
   db:start_link(),
   db:insert("Key1","Val1"),
   db:insert("Key2","Val2"),

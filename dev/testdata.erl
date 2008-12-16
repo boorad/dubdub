@@ -1,7 +1,7 @@
 %% Author: brad
 %% Created: Jun 16, 2008
 %% Description: creates consistent test data for development
--module(testdata_for_it).
+-module(testdata).
 
 %%
 %% Include files
@@ -10,19 +10,26 @@
 %%
 %% Exported Functions
 %%
--export([go/0]).
+-export([gen/0, load/0]).
 
 
+%% possible OUTPUT_FORMAT values:
+%%  json - couchdb ready
+%%  tuple -
 -define(OUTPUT_FORMAT, tuple).
--define(OUTPUT_FILE, atom_to_list(?OUTPUT_FORMAT) ++ ".dat").
+
+%% shouldn't need to touch these, unless you want to update the BULK_CNT for
+%% optimizing bulk load efficiency
+-define(DAT_FILE, atom_to_list(?OUTPUT_FORMAT) ++ ".dat").
 -define(BULK_CNT, 100).
+
 
 %%
 %% API Functions
 %%
 
-
-go() ->
+%% generates .dat file based on data in pgsql (on boorad's local)
+gen() ->
   ensure_started(inets),
 
   %% get psql ready, and loop thru resultset
@@ -32,6 +39,18 @@ go() ->
   {_,[{_,MonthStoreRS}]} = psql:sql_query(Pid, MonthStoreQuery),
 
   process_docs(Pid, MonthStoreRS, []).
+
+
+%% takes result of .dat file from gen/0 and loads it into a db node for
+%% performance testing so we can build 'it' the proper way
+load() ->
+  db:start_link(),
+  case file:consult(?DAT_FILE) of
+    {ok, Docs} ->
+      insert_doc(Docs);
+    {error,Why} ->
+      io:format( "~p~n", [{error, Why, ?DAT_FILE}] )
+  end.
 
 
 %%
@@ -48,7 +67,7 @@ ensure_started(App) ->
 
 
 write_docs_to_file(Docs) ->
-  [ write_doc_to_file(?OUTPUT_FILE, [append], Doc) || Doc <- Docs ],
+  [ write_doc_to_file(?DAT_FILE, [append], Doc) || Doc <- Docs ],
   ok.
 
 
@@ -83,11 +102,6 @@ process_docs(Pid, MonthStoreRS, DocList) ->
     _ ->
       process_docs(Pid, Rest, [Doc | DocList])
   end.
-
-
-%%format_docs(json, DocList) ->
-%%  io:format("~p~n~n", [DocList]).
-
 
 
 get_month_store(Pid, M, S) ->
@@ -171,8 +185,6 @@ format_singledoc(json, Raw) ->
   {obj, Raw};
 format_singledoc(tuple, Raw) ->
   list_to_tuple(Raw).
-  %%[ Raw1|_Rest ] = Raw,
-  %%{Raw1}.
 
 
 get_storeinfo_query(S) ->
@@ -244,3 +256,10 @@ int(Val) when is_list(Val) ->
   end;
 int(Val) ->
   Val.
+
+
+insert_doc([H|T]) ->
+  db:insert(null,H),
+  insert_doc(T);
+insert_doc([]) ->
+  ok.

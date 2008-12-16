@@ -1,0 +1,17 @@
+This directory is for generating and loading test data.
+
+Data is pulled from a rdbms and .dat files are constructed with the
+testdata:gen/0 function.
+
+.dat files are Erlang structures, different ones depending on the constants set
+in testdata.erl.  We will have many different types, including json, tuple,
+dict, gb_trees, etc. and try to zero in on the most performant data structure
+for our needs.
+
+The data originates from a PostgreSQL database on boorad's local laptop.
+However, the data isn't scrambled / randomized enough to give it out yet.  I
+hope to add a bit more scrambling so I can post the dat files to github.
+
+Then we can have base .dat files and duplicate the data over and over, for
+different stores and years to create a truly large dataset for even more
+integration testing.
