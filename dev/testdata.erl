@@ -20,8 +20,8 @@
 
 %% shouldn't need to touch these, unless you want to update the BULK_CNT for
 %% optimizing bulk load efficiency
--define(DAT_FILE, atom_to_list(?OUTPUT_FORMAT) ++ ".dat").
--define(BULK_CNT, 100).
+-define(DAT_FILE, "../dev/" ++ atom_to_list(?OUTPUT_FORMAT) ++ ".dat").
+-define(BULK_CNT, 50).
 
 
 %%
@@ -45,6 +45,7 @@ gen() ->
 %% performance testing so we can build 'it' the proper way
 load() ->
   db:start_link(),
+  db:truncate(),
   case file:consult(?DAT_FILE) of
     {ok, Docs} ->
       insert_doc(Docs);
@@ -66,18 +67,19 @@ ensure_started(App) ->
   end.
 
 
+%% write_docs_to_db(Docs) ->
+%%   [ db:insert(null,Doc) || Doc <- Docs ],
+%%   ok.
+
+
 write_docs_to_file(Docs) ->
-  [ write_doc_to_file(?DAT_FILE, [append], Doc) || Doc <- Docs ],
-  ok.
+  {ok, FD} = file:open(?DAT_FILE, [append]),
+  [ write_doc_to_file(FD, Doc) || Doc <- Docs ],
+  file:close(FD).
 
 
-write_doc_to_file(File, Mode, Doc) ->
-  case file:open(File, Mode) of
-    {ok, FD} ->
-      io:format(FD, "~p.~n~n", [Doc]);
-    {error, Reason} ->
-      {error, Reason}
-  end.
+write_doc_to_file(FD, Doc) ->
+  io:format(FD, "~p.~n~n", [Doc]).
 
 
 %% this fun loops through MonthStoreRS, filling up DocList to the BULK_CNT
@@ -153,7 +155,7 @@ get_month_store_query() ->
     "  AND gmonth-96 between 1 and 12 "
     "GROUP BY gmonth, gstore "
     "ORDER BY gstore, gmonth "
-    "LIMIT 5;".  % for dev
+    .%"LIMIT 1000;".  % for dev
 
 
 get_singledoc_query(M, S) ->

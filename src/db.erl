@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, insert/2, get_all/0, q/3, truncate/0]).
+-export([start_link/0, insert/2, get_all/0, get_count/0, q/3, truncate/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -40,6 +40,9 @@ q(dict, Filter, Reduce) ->
 
 get_all() ->
   gen_server:call(?MODULE, {get_all}).
+
+get_count() ->
+  gen_server:call(?MODULE, {get_count}).
 
 truncate() ->
   gen_server:call(?MODULE, {truncate}).
@@ -86,6 +89,9 @@ handle_call({q, dict, Filter, _Reduce}, _From, State) ->
 
 handle_call({get_all}, _From, State) ->
   {reply, {ok, State}, State};
+
+handle_call({get_count}, _From, State) ->
+  {reply, {ok, length(State)}, State};
 
 handle_call({truncate}, _From, _State) ->
   {reply, {ok, truncate}, []};
