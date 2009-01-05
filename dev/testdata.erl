@@ -21,7 +21,7 @@
 %% shouldn't need to touch these, unless you want to update the BULK_CNT for
 %% optimizing bulk load efficiency
 -define(DAT_FILE, "../dev/" ++ atom_to_list(?OUTPUT_FORMAT) ++ ".dat").
--define(BULK_CNT, 50).
+-define(BULK_CNT, 25).
 
 
 %%
@@ -38,20 +38,23 @@ gen() ->
   MonthStoreQuery = get_month_store_query(),
   {_,[{_,MonthStoreRS}]} = psql:sql_query(Pid, MonthStoreQuery),
 
-  process_docs(Pid, MonthStoreRS, []).
+  %% okay, blast it out in binary format to file
+  glogger:start_link(?DAT_FILE),
+  process_docs(Pid, MonthStoreRS, []),
+  glogger:stop().
 
 
 %% takes result of .dat file from gen/0 and loads it into a db node for
-%% performance testing so we can build 'it' the proper way
+%% performance testing so we can build 'dubdub' the proper way
 load() ->
   db:start_link(),
   db:truncate(),
-  case file:consult(?DAT_FILE) of
-    {ok, Docs} ->
-      insert_doc(Docs);
-    {error,Why} ->
-      io:format( "~p~n", [{error, Why, ?DAT_FILE}] )
-  end.
+  Fun = fun(Term) ->
+	    db:insert(null, Term)
+	end,
+  glogger:start_link(?DAT_FILE),
+  glogger:upread(Fun)
+  .%glogger:stop().
 
 
 %%
@@ -67,19 +70,9 @@ ensure_started(App) ->
   end.
 
 
-%% write_docs_to_db(Docs) ->
-%%   [ db:insert(null,Doc) || Doc <- Docs ],
-%%   ok.
-
-
+%% write list of docs (erlang terms) out to .dat file
 write_docs_to_file(Docs) ->
-  {ok, FD} = file:open(?DAT_FILE, [append]),
-  [ write_doc_to_file(FD, Doc) || Doc <- Docs ],
-  file:close(FD).
-
-
-write_doc_to_file(FD, Doc) ->
-  io:format(FD, "~p.~n~n", [Doc]).
+  [ glogger:log(Doc) || Doc <- Docs ].
 
 
 %% this fun loops through MonthStoreRS, filling up DocList to the BULK_CNT
@@ -155,7 +148,7 @@ get_month_store_query() ->
     "  AND gmonth-96 between 1 and 12 "
     "GROUP BY gmonth, gstore "
     "ORDER BY gstore, gmonth "
-    .%"LIMIT 1000;".  % for dev
+    .%"LIMIT 100;".  % for dev
 
 
 get_singledoc_query(M, S) ->
@@ -258,10 +251,3 @@ int(Val) when is_list(Val) ->
   end;
 int(Val) ->
   Val.
-
-
-insert_doc([H|T]) ->
-  db:insert(null,H),
-  insert_doc(T);
-insert_doc([]) ->
-  ok.
