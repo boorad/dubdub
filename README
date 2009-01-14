@@ -1,3 +1,7 @@
-This is 'it'
+This is 'dubdub'
 
-I'm not sure what 'it' is yet.  But I think I'm gonna like 'it.'
+I'm not sure what 'dubdub' is yet.  Best guess is some database-ish thing.
+Document-oriented, key/value store, map/reduce to query, parallel, distributed,
+and fault tolerant, with an analytics bent.  You know, the usuals.
+
+see https://github.com/boorad/dubdub/wikis for our latest docs.

@@ -37,7 +37,7 @@ log(Term) ->
     gen_server:call(glogger, {log, term_to_binary(Term)}).
 
 upread(Fun) ->
-    gen_server:call(glogger, {upread, Fun}).
+    gen_server:call(glogger, {upread, Fun}, infinity).
 
 truncate() ->
     gen_server:call(glogger, truncate).
@@ -116,8 +116,9 @@ handle_info(_Info, State) ->
 %% Purpose: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
-terminate(_Reason, Fd) ->
-    file:close(Fd).
+terminate(Reason, Fd) ->
+  file:close(Fd),
+  {terminated, Reason}.
 
 %%--------------------------------------------------------------------
 %% Func: code_change(OldVsn, State, Extra) -> {ok, NewState}
@@ -168,7 +169,7 @@ log_binary(Fd, Bin) ->
 
 
 warn(Fmt, As) ->
-    io:format(user, "slogger: " ++ Fmt, [As]).
+    io:format(user, "glogger: " ++ Fmt, [As]).
 
 
 upread(Fd, Fun) ->

@@ -25,7 +25,7 @@ with_file(File, Fun, Initial) ->
 	{error, Reason} ->
 	    {error, Reason}
     end.
- 
+
 feed(Fd, {ok, Bin}, Fun, Farg) ->
     case Fun(Bin, Farg) of
 	{done, Res} ->
@@ -59,7 +59,7 @@ getint32(F) ->
     {ok, B} = file:read(F, 4),
     i32(B).
 
-    
+
 
 %%% Purpose : return Integers niceley formatted as bits or hex
 %%%           Handy debug functions when dealing with BIT
@@ -68,7 +68,7 @@ getint32(F) ->
 
 %% Bits display code
 
-%% one byte nicely as a list of one string 
+%% one byte nicely as a list of one string
 bits(I) when is_integer(I), I < 256 ->
     [byte_to_bits(I)];
 
@@ -156,7 +156,7 @@ byte_to_bits(Byte) ->
 byte_to_bits(Byte, Fill) ->
     byte_to_bits(Byte, Fill, []).
 byte_to_bits(Byte, Fill, Ack) when Byte > 0 ->
-    if 
+    if
 	(Byte band 1) == 1  ->
 	    byte_to_bits(Byte bsr 1 , Fill, [1 | Ack] );
 	true ->
@@ -167,7 +167,7 @@ byte_to_bits(0, Fill, Ack) ->
 
 eight_pad(Fill, L) when is_integer(Fill) ->
     Len = length(L),
-    lists:map(fun(Char) -> Char + $0 end, 
+    lists:map(fun(Char) -> Char + $0 end,
 	      lists:duplicate(Fill - Len, 0) ++ L);
 eight_pad(nofill, L) ->
     lists:map(fun(Char) -> Char + $0 end, L).
@@ -184,7 +184,7 @@ hexi({Hi, Lo} , Ack) ->
 
 hex4(Int) when Int < 10 -> Int + $0;
 hex4(Int) -> ($A - 10) + Int.
-    
+
 
 hex(Int, Fields) ->
     [H|T] = lists:reverse(Fields),
@@ -193,17 +193,17 @@ hex(Int, Fields) ->
 hexf(_, Flen, _,_) when Flen rem 4 /= 0 ->
     exit(bad_field_len);
 hexf({0, Lo}, Flen, [], Ack) ->
-    Str0 = hex(Lo), 
+    Str0 = hex(Lo),
     Str = pad4(Str0, Flen, length(Str0)),
     [Str | Ack];
 
 hexf({Hi, Lo}, Flen, [], Ack) ->
-    Str0 = hex(Lo), 
+    Str0 = hex(Lo),
     Str = pad4(Str0, Flen, length(Str0)),
     [{too_large_int, remain, Hi}, Str | Ack];
 
 hexf({Hi, Lo}, Flen, Tail, Ack) ->
-    Str0 = hex(Lo), 
+    Str0 = hex(Lo),
     Str = pad4(Str0, Flen, length(Str0)),
     [H|T] = Tail,
     hexf(get_lo_bits(Hi, H), H, T, [Str |Ack]).
@@ -216,12 +216,12 @@ noneg(X) when X > 0 ->
      X;
 noneg(_) ->
      0.
-    
-    
+
+
 
 %% This function doesn't return, it listens to port
 %% and process tcp requests on the port number.
-%% Fun may return either of the following 
+%% Fun may return either of the following
 
 %% done: socket is closed
 %% {more, Ack} : Fun needs more data to process.
@@ -243,7 +243,7 @@ noneg(_) ->
 %%
 %% so to create a socket server which performs the above service
 %% we need to call klib:with_socket(Port, F).
-%% The server is a concurrent server so each 
+%% The server is a concurrent server so each
 %% request runs in its own process.
 
 with_socket(Port, Fun) ->
@@ -251,7 +251,7 @@ with_socket(Port, Fun) ->
 
 with_socket0(Port, Fun) ->
     process_flag(trap_exit, true),
-    case gen_tcp:listen(Port, [binary, {packet, 0}, 
+    case gen_tcp:listen(Port, [binary, {packet, 0},
 			       {reuseaddr, true},
 			       {active, false}]) of
 	{ok, LSock} ->
@@ -348,11 +348,3 @@ process_data(S, Fun, B) ->
 	Other ->
 	    lasterror({bad_ret_from_fun, Other})
     end.
-
-    
-	    
-	    
-			     
-
-
-    
