@@ -11,7 +11,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, insert/2, get_all/0, get_count/0, q/3, truncate/0]).
+-export([start_link/1, insert/2, get_all/0, get_count/0, q/3, truncate/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -25,8 +25,8 @@
 %% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
 %% Description: Starts the server
 %%--------------------------------------------------------------------
-start_link() ->
-  gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+start_link(InstanceId) ->
+  gen_server:start_link({local, ?MODULE}, ?MODULE, [InstanceId], []).
 
 insert(K,V) ->
   gen_server:call(?MODULE, {insert, K, V}).
@@ -58,7 +58,7 @@ truncate() ->
 %%                         {stop, Reason}
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
-init([]) ->
+init(_InstanceId) ->
   {ok, []}.
 
 %%--------------------------------------------------------------------
