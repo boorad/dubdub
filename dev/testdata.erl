@@ -148,7 +148,7 @@ get_month_store_query() ->
     "  AND gmonth-96 between 1 and 12 "
     "GROUP BY gmonth, gstore "
     "ORDER BY gstore, gmonth "
-    .%"LIMIT 100;".  % for dev
+    "LIMIT 100;".  % for dev
 
 
 get_singledoc_query(M, S) ->
