@@ -26,7 +26,7 @@
 %% Description: Starts the server
 %%--------------------------------------------------------------------
 start_link(InstanceId) ->
-  gen_server:start_link({local, ?MODULE}, ?MODULE, [InstanceId], []).
+  gen_server:start_link(?MODULE, [InstanceId], []).
 
 insert(K,V) ->
   gen_server:call(?MODULE, {insert, K, V}).
@@ -59,6 +59,7 @@ truncate() ->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init(_InstanceId) ->
+%%   process_dictionary:register_process(InstanceId, db, self()),
   {ok, []}.
 
 %%--------------------------------------------------------------------

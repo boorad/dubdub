@@ -1,17 +1,18 @@
 %%%-------------------------------------------------------------------
-%%% File    : dubdub_sup.erl
+%%% File    : db_sup_or.erl
 %%% Author  : Brad Anderson <brad@sankatygroup.com>
-%%% Description : Supervisor for boot nodes
+%%% Description : Supervisor for db nodes
 %%%
-%%% Created : 15 Jan 2009 by Brad Anderson <brad@sankatygroup.com>
+%%% Created : 27 Jan 2009 by Brad Anderson <brad@sankatygroup.com>
 %%%-------------------------------------------------------------------
--module(dubdub_sup).
+
+-module(db_sup_or).
 
 -author('brad@sankatygroup.com').
 
 -behaviour(supervisor).
 
--export([start_link/1, init/1]).
+-export([start_link/0, init/1]).
 
 %%====================================================================
 %% API functions
@@ -20,8 +21,8 @@
 %% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
 %% Description: Starts the supervisor
 %%--------------------------------------------------------------------
-start_link(_StartArgs) ->
-  supervisor:start_link({local, main_sup}, ?MODULE, []).
+start_link() ->
+    supervisor:start_link(?MODULE, []).
 
 %%====================================================================
 %% Supervisor callbacks
@@ -35,26 +36,48 @@ start_link(_StartArgs) ->
 %% to find out about restart strategy, maximum restart frequency and child
 %% specifications.
 %%--------------------------------------------------------------------
-init(_Args) ->
-  crypto:start(),
-%%   InstanceId = string:concat("boot_server_", randoms:getRandomId()),
-%%   error_logger:logfile({open, preconfig:cs_log_file()}),
-  DBSupOr =
-    {db_sup_or,
-     {db_sup_or, start_link, []},
+init([]) ->
+  InstanceId = string:concat("db_node_", randoms:getRandomId()),
+  DB =
+    {db_node,
+     {db, start_link, [InstanceId]},
      permanent,
      brutal_kill,
      worker,
      []},
-  AdminServer =
-    {admin_server,
-     {admin, start_link, []},
-     permanent,
-     brutal_kill,
-     worker,
-     []},
-  {ok, {{one_for_one, 3, 10},
-	[
-	 DBSupOr,
-	 AdminServer
-	]}}.
+%%     KeyHolder =
+%% 	{cs_keyholder,
+%% 	 {cs_keyholder, start_link, [InstanceId]},
+%% 	 permanent,
+%% 	 brutal_kill,
+%% 	 worker,
+%% 	 []},
+%%     Supervisor_AND =
+%% 	{cs_supervisor_and,
+%% 	 {cs_sup_and, start_link, [InstanceId]},
+%% 	 permanent,
+%% 	 brutal_kill,
+%% 	 supervisor,
+%% 	 []},
+%%     RingMaintenance =
+%% 	{?RM,
+%% 	 {?RM, start_link, [InstanceId]},
+%% 	 permanent,
+%% 	 brutal_kill,
+%% 	 worker,
+%% 	 []},
+%%     RoutingTable =
+%% 	{routingtable,
+%% 	 {rt_loop, start_link, [InstanceId]},
+%% 	 permanent,
+%% 	 brutal_kill,
+%% 	 worker,
+%% 	 []},
+    {ok, {{one_for_one, 10, 1},
+	  [
+	   DB
+%% 	   KeyHolder,
+%% 	   RingMaintenance,
+%% 	   RoutingTable,
+%% 	   Supervisor_AND
+	  ]}}.

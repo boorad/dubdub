@@ -31,7 +31,7 @@ add_nodes_loop(0, _) ->
   ok;
 add_nodes_loop(Count, Delay) ->
   supervisor:start_child(main_sup, {randoms:getRandomId(),
-				    {db_node, start_link, []},
+				    {db_sup_or, start_link, []},
 				    permanent,
 				    brutal_kill,
 				    worker,

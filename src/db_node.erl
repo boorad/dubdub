@@ -323,7 +323,7 @@ loop(State, Debug) ->
 -spec(start/2 :: (any(), any()) -> cs_state:state()).
 start(InstanceId, Parent) ->
   db:start_link(InstanceId),
-%%   process_dictionary:register_process(InstanceId, db_node, self()),
+  process_dictionary:register_process(InstanceId, db_node, self()),
   Parent ! done,
   timer:sleep(crypto:rand_uniform(1, 100) * 100),
   State = null,
