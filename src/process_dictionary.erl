@@ -1,19 +1,16 @@
 %%%-------------------------------------------------------------------
 %%% File    : process_dictionary.erl
-%%% Author  : Thorsten Schuett <schuett@zib.de>
+%%% Author  : Brad Anderson <brad@sankatygroup.com>
 %%% Description : process dictionary
 %%%
-%%% Created : 17 Aug 2007 by Thorsten Schuett <schuett@csr-pc11.zib.de>
+%%% Created : 17 Jan 2009 by Brad Anderson <brad@sankatygroup.com>
 %%%-------------------------------------------------------------------
-%% @author Thorsten Schuett <schuett@zib.de>
-%% @copyright 2007-2008 Konrad-Zuse-Zentrum für Informationstechnik Berlin
-%% @version $Id: process_dictionary.erl 128 2009-01-09 15:38:35Z schuett $
 
 %@doc This module provides a mechanism to implement process
 %     groups. Within a process group, the names of processes have to
 %     be unique, but the same name can be used in different
-%     groups. The motivation for this module was to run several Chord#
-%     nodes in one erlang vm. But for the processes forming a Chord#
+%     groups. The motivation for this module was to run several db
+%     nodes in one erlang vm. But for the processes forming a db
 %     node being able to talk to each other, they have to know their
 %     names (db_node, config, etc.). This module allows the processes
 %     to keep their names.
@@ -30,9 +27,6 @@
 %     process with the given name.
 
 -module(process_dictionary).
-
--author('schuett@zib.de').
--vsn('$Id: process_dictionary.erl 128 2009-01-09 15:38:35Z schuett $ ').
 
 -behaviour(gen_server).
 

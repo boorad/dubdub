@@ -1,18 +1,17 @@
 %%%-------------------------------------------------------------------
-%%% File    : db_sup_or.erl
+%%% File    : db_sup_and.erl
 %%% Author  : Brad Anderson <brad@sankatygroup.com>
 %%% Description : Supervisor for db nodes
 %%%
-%%% Created : 27 Jan 2009 by Brad Anderson <brad@sankatygroup.com>
+%%% Created : 29 Jan 2009 by Brad Anderson <brad@sankatygroup.com>
 %%%-------------------------------------------------------------------
 
--module(db_sup_or).
-
--author('brad@sankatygroup.com').
+-module(db_sup_and).
 
 -behaviour(supervisor).
 
--export([start_link/0, init/1]).
+
+-export([start_link/1, init/1]).
 
 %%====================================================================
 %% API functions
@@ -21,8 +20,8 @@
 %% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
 %% Description: Starts the supervisor
 %%--------------------------------------------------------------------
-start_link() ->
-    supervisor:start_link(?MODULE, []).
+start_link(InstanceId) ->
+    supervisor:start_link(?MODULE, [InstanceId]).
 
 %%====================================================================
 %% Supervisor callbacks
@@ -36,16 +35,24 @@ start_link() ->
 %% to find out about restart strategy, maximum restart frequency and child
 %% specifications.
 %%--------------------------------------------------------------------
-init([]) ->
-  InstanceId = string:concat("db_node_", randoms:getRandomId()),
-  DBSupAnd =
-    {db_sup_and,
-     {db_sup_and, start_link, [InstanceId]},
+init([InstanceId]) ->
+  Node =
+    {db_node,
+     {db_node, start_link, [InstanceId]},
      permanent,
      brutal_kill,
      worker,
      []},
-  {ok, {{one_for_one, 10, 1},
+  DB =
+    {db,
+     {db, start_link, [InstanceId]},
+     permanent,
+     brutal_kill,
+     worker,
+     []},
+  %% important for DB to start first, b/c Node uses DB, but not vice-versa
+  {ok, {{one_for_all, 10, 1},
 	[
-	 DBSupAnd
+	 DB,
+	 Node
 	]}}.
