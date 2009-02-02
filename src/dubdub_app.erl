@@ -10,7 +10,10 @@
 -behaviour(application).
 
 %% Application callbacks
--export([start/2, stop/1]).
+-export([start/0, start/2, stop/1]).
+
+start() ->
+  application:start(dubdub).
 
 %%====================================================================
 %% Application callbacks
@@ -26,7 +29,7 @@
 %% top supervisor of the tree.
 %%--------------------------------------------------------------------
 start(_Type, StartArgs) ->
-  process_dictionary:start_link(),
+  node_manager:start_link(),
   case dubdub_sup:start_link(StartArgs) of
     {ok, Pid} ->
       {ok, Pid};
