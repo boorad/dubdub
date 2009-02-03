@@ -45,11 +45,12 @@ loop(State, Debug) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     {insert, Value} ->
-      db:insert(null, Value),
+      io:format("DBPid in insert: ~p~n", [State]),
+      gen_server:call(State, {insert, null, Value}),
       loop(State, ?DEBUG(Debug));
 
     {get_all_data} ->
-      db:get_all(),
+      gen_server:call(State, {get_all}),
       loop(State, ?DEBUG(Debug));
 
 
@@ -85,14 +86,20 @@ loop(State, Debug) ->
 
 %% @doc joins this node to the cluster and calls the main loop
 %% TODO: _InstanceId - remove?  keep the node id in here somewhere?
--spec(start/2 :: (any(), any()) -> cs_state:state()).
+%%-spec(start/2 :: (any(), any()) -> cs_state:state()).
 start(_InstanceId, Parent) ->
+  process_flag(trap_exit, true),
+
+  %% start db process
+%%   DBPid = spawn_link(db, start_link, [InstanceId]),
+%%   io:format("db started, Pid: ~p~n", [DBPid]),
+
+  %% register this db_node with node_manager
   node_manager:register_node(self()),
   Parent ! done,
   timer:sleep(crypto:rand_uniform(1, 100) * 100),
-  State = null,
   io:format("[ I | Node   | ~w ] joined~n",[self()]),
-  loop(State, []).   % 2nd param used to be cs_debug:new()
+  loop(maybe_DBPid_if_it_would_stay_running, []).
 
 %% @doc spawns a db node, called by the db supervisor process
 %% @spec start_link(term()) -> {ok, pid()}
