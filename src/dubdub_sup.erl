@@ -37,15 +37,29 @@ start_link(_StartArgs) ->
 %%--------------------------------------------------------------------
 init(_Args) ->
   crypto:start(),
-%%   InstanceId = string:concat("boot_server_", randoms:getRandomId()),
+%%   InstanceId = string:concat("db_node_", randoms:getRandomId()),
 %%   error_logger:logfile({open, preconfig:cs_log_file()}),
-  DBSupOr =
-    {db_sup_or,
-     {db_sup_or, start_link, []},
+%%   DBNode =
+%%     {list_to_atom(InstanceId),
+%%      {db_node, start_link, [InstanceId]},
+%%      permanent,
+%%      brutal_kill,
+%%      worker,
+%%      []},
+  DataLoader =
+    {dataloader,
+     {dataloader, start_link, []},
      permanent,
      brutal_kill,
      worker,
      []},
+%%   NodeManager =
+%%     {node_manager,
+%%      {node_manager, start_link, []},
+%%      permanent,
+%%      brutal_kill,
+%%      worker,
+%%      []},
   AdminServer =
     {admin_server,
      {admin, start_link, []},
@@ -55,6 +69,8 @@ init(_Args) ->
      []},
   {ok, {{one_for_one, 3, 10},
 	[
-	 DBSupOr,
+%% 	 DBNode,
+	 DataLoader,
+%% 	 NodeManager,
 	 AdminServer
 	]}}.

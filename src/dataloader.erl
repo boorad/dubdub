@@ -38,7 +38,6 @@ insert(Value) ->
   gen_server:call(?SERVER, {insert, Value}).
 
 
-
 %%====================================================================
 %% gen_server callbacks
 %%====================================================================
@@ -64,7 +63,8 @@ init([]) ->
 %%--------------------------------------------------------------------
 handle_call({insert, Value}, _From, State) ->
   Next = node_manager:next_node(?METHOD),
-  Next ! {insert, Value},  % TODO consider wrapping send's for future TCP layer
+  io:format("next DB pid: ~p~n", [Next]),
+  gen_server:call(Next, {insert, null, Value}),
 
   %% receive block here?
 

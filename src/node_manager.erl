@@ -16,7 +16,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, register_node/1, next_node/1, get_all_nodes/0]).
+-export([start_link/0, register_node/1, next_node/1, get_all_nodes/0,
+	 get_all_node_data/0]).
 
 -define(SERVER, ?MODULE).
 
@@ -51,6 +52,15 @@ next_node(Method) ->
 get_all_nodes() ->
   gen_server:call({global, ?SERVER}, {get_all_nodes}).
 
+get_all_node_data() ->
+  DBs = get_all_nodes(),
+  Fun = fun(DB) ->
+	    Data = gen_server:call(DB, {get_all}),
+	    io:format("~p - ~p~n~n", [DB, Data])
+	end,
+  lists:map(Fun, DBs),
+  ok.
+
 %%====================================================================
 %% gen_server callbacks
 %%====================================================================
@@ -63,6 +73,7 @@ get_all_nodes() ->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init([]) ->
+  process_flag(trap_exit, true),
   {ok, #state{}}.
 
 %%--------------------------------------------------------------------
@@ -88,7 +99,7 @@ handle_call({next_node, roundrobin}, _From, State) when
 handle_call({next_node, roundrobin}, _From, State) ->
   NewState = State#state{nodes=State#state.lookaside, lookaside=[]},
   [NextWorker|T] = NewState#state.nodes,
-  {reply, NextWorker, State#state{nodes=T, lookaside=[NextWorker|State#state.lookaside]}};
+  {reply, NextWorker, NewState#state{nodes=T, lookaside=[NextWorker|NewState#state.lookaside]}};
 
 handle_call({get_all_nodes}, _From, State) ->
    AllNodes = lists:flatten([State#state.nodes, State#state.lookaside]),

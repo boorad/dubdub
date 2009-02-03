@@ -30,8 +30,10 @@ add_nodes(Count, Delay) ->
 add_nodes_loop(0, _) ->
   ok;
 add_nodes_loop(Count, Delay) ->
-  supervisor:start_child(main_sup, {randoms:getRandomId(),
-				    {db_sup_or, start_link, []},
+  NewId = randoms:getRandomId(),
+  InstanceId = string:concat("db_", NewId),
+  supervisor:start_child(main_sup, {list_to_atom(NewId),
+				    {db, start_link, [InstanceId]},
 				    permanent,
 				    brutal_kill,
 				    worker,
@@ -135,19 +137,21 @@ add_nodes_loop(Count, Delay) ->
 %% admin server functions
 %%===============================================================================
 start_link() ->
-    {ok, spawn_link(?MODULE, start, [])}.
+  process_flag(trap_exit, true),
+  {ok, spawn_link(?MODULE, start, [])}.
 
 start() ->
-    register(admin_server, self()),
-    loop().
+  register(admin_server, self()),
+  add_nodes(1),  %% add first node
+  loop().
 
 loop() ->
-    receive
-	{get_comm_layer_dump, Sender} ->
-	    cs_send:send(Sender, {get_comm_layer_dump_response,
-				  comm_layer.comm_logger:dump()}),
-	    loop()
-    end.
+  receive
+    {get_comm_layer_dump, Sender} ->
+      cs_send:send(Sender, {get_comm_layer_dump_response,
+			    comm_layer.comm_logger:dump()}),
+      loop()
+  end.
 
 %%--------------------------------------------------------------------
 %% Function: nodes() -> list()
@@ -156,4 +160,4 @@ loop() ->
 % @doc contact boot server and list the known ip addresses
 % @spec nodes() -> list()
 nodes() ->
-    util:uniq([IP || {IP, _, _} <- lists:sort(boot_server:node_list())]).
+  util:uniq([IP || {IP, _, _} <- lists:sort(boot_server:node_list())]).

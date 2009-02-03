@@ -59,7 +59,8 @@ truncate() ->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init(_InstanceId) ->
-%%   process_dictionary:register_process(InstanceId, db, self()),
+  process_flag(trap_exit, true),
+  node_manager:register_node(self()),
   {ok, []}.
 
 %%--------------------------------------------------------------------
