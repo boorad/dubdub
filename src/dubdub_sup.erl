@@ -36,26 +36,9 @@ start_link(_StartArgs) ->
 %% specifications.
 %%--------------------------------------------------------------------
 init(_Args) ->
-  crypto:start(),
-%%   InstanceId = string:concat("db_node_", randoms:getRandomId()),
-%%   error_logger:logfile({open, preconfig:cs_log_file()}),
-%%   DBNode =
-%%     {list_to_atom(InstanceId),
-%%      {db_node, start_link, [InstanceId]},
-%%      permanent,
-%%      brutal_kill,
-%%      worker,
-%%      []},
   DataLoader =
     {dataloader,
      {dataloader, start_link, []},
-     permanent,
-     brutal_kill,
-     worker,
-     []},
-  NodeManager =
-    {node_manager,
-     {node_manager, start_link, []},
      permanent,
      brutal_kill,
      worker,
@@ -69,8 +52,6 @@ init(_Args) ->
      []},
   {ok, {{one_for_one, 3, 10},
 	[
-%% 	 DBNode,
 	 DataLoader,
-	 NodeManager,
 	 AdminServer
 	]}}.
