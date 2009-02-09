@@ -36,6 +36,7 @@ start_link(_StartArgs) ->
 %% specifications.
 %%--------------------------------------------------------------------
 init(_Args) ->
+  crypto:start(),
   DataLoader =
     {dataloader,
      {dataloader, start_link, []},
