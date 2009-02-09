@@ -74,7 +74,7 @@ init(_InstanceId) ->
 %%--------------------------------------------------------------------
 handle_call({insert, K, V}, _From, State) ->
   NewState = [{K,V} | State],
-  {reply, {ok, insert, State}, NewState};
+  {reply, {ok, insert}, NewState};
 
 handle_call({q, list, Filter, _Reduce}, _From, State) ->
   Results = lists:filter(Filter, State),

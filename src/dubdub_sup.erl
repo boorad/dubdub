@@ -53,13 +53,13 @@ init(_Args) ->
      brutal_kill,
      worker,
      []},
-%%   NodeManager =
-%%     {node_manager,
-%%      {node_manager, start_link, []},
-%%      permanent,
-%%      brutal_kill,
-%%      worker,
-%%      []},
+  NodeManager =
+    {node_manager,
+     {node_manager, start_link, []},
+     permanent,
+     brutal_kill,
+     worker,
+     []},
   AdminServer =
     {admin_server,
      {admin, start_link, []},
@@ -71,6 +71,6 @@ init(_Args) ->
 	[
 %% 	 DBNode,
 	 DataLoader,
-%% 	 NodeManager,
+	 NodeManager,
 	 AdminServer
 	]}}.

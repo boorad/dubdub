@@ -1,23 +1,18 @@
 %%%-------------------------------------------------------------------
 %%% File    : node_manager.erl
 %%% Author  : Brad Anderson <brad@sankatygroup.com>
-%%% Description : The DB Node Manager - its main purpose is to maintain
-%%%               a list of all active db nodes in the cluster.
-%%%               One can have different load balancing strategies
-%%%               based on this list, like round-robin, least loaded,
-%%%               etc.  Used by data loader and query manager.
+%%% Description : The Node Manager - its main purpose is to maintain
+%%%               a list of all active erlang nodes in the cluster.
 %%%
 %%% Created : 31 Jan 2009 by Brad Anderson <brad@sankatygroup.com>
 %%%
-%%% Thanks:  hemulen via IRC 30 Jan 2009
 %%%-------------------------------------------------------------------
 -module(node_manager).
 
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, register_node/1, next_node/1, get_all_nodes/0,
-	 get_all_node_data/0]).
+-export([start_link/0, register_node/1, next_node/1, get_all_nodes/0]).
 
 -define(SERVER, ?MODULE).
 
@@ -41,8 +36,8 @@ start_link() ->
   gen_server:start_link({global, ?SERVER}, ?MODULE, [], []).
 
 
-register_node(DBNodePid) ->
-  gen_server:call({global, ?SERVER}, {register_node, DBNodePid}).
+register_node(NodeName) ->
+  gen_server:call({global, ?SERVER}, {register_node, NodeName}).
 
 
 next_node(Method) ->
@@ -52,14 +47,6 @@ next_node(Method) ->
 get_all_nodes() ->
   gen_server:call({global, ?SERVER}, {get_all_nodes}).
 
-get_all_node_data() ->
-  DBs = get_all_nodes(),
-  Fun = fun(DB) ->
-	    Data = gen_server:call(DB, {get_all}),
-	    io:format("~p - ~p~n~n", [DB, Data])
-	end,
-  lists:map(Fun, DBs),
-  ok.
 
 %%====================================================================
 %% gen_server callbacks
@@ -103,7 +90,6 @@ handle_call({next_node, roundrobin}, _From, State) ->
 
 handle_call({get_all_nodes}, _From, State) ->
    AllNodes = lists:flatten([State#state.nodes, State#state.lookaside]),
-%%   AllNodes = State#state.lookaside,
   {reply, AllNodes, State};
 
 handle_call(_Request, _From, State) ->

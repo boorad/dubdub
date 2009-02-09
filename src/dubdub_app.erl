@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%%% File    : dubdub_app.erl
+%%% File    : dubdub_boot.erl
 %%% Author  : Brad Anderson <brad@sankatygroup.com>
 %%% Description :
 %%%
@@ -29,7 +29,7 @@ start() ->
 %% top supervisor of the tree.
 %%--------------------------------------------------------------------
 start(_Type, StartArgs) ->
-  node_manager:start_link(),
+  start_node_manager(),
   case dubdub_sup:start_link(StartArgs) of
     {ok, Pid} ->
       {ok, Pid};
@@ -49,3 +49,12 @@ stop(_State) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+start_node_manager() ->
+  [Node | _T] = string:tokens(atom_to_list(node()), "@"),
+  case Node of
+    "boot" ->
+      node_manager:start_link();
+    _ ->
+      ok
+  end.
