@@ -16,8 +16,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, register_db/1, next_db/1, get_all_dbs/0,
-	 get_all_db_data/0]).
+-export([start_link/0, register_db/2, next_db/2, get_all_dbs/1,
+	 get_all_db_data/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -38,22 +38,27 @@
 %% Description: Starts the server
 %%--------------------------------------------------------------------
 start_link() ->
-  gen_server:start_link({global, ?SERVER}, ?MODULE, [], []).
+  gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 
-register_db(DBPid) ->
-  gen_server:call({global, ?SERVER}, {register_db, DBPid}).
+%% register_db(Node, DBPid) -> ok | barfs
+register_db(local, DBPid) ->
+  register_db(?SERVER, DBPid);
+
+register_db(Node, DBPid) ->
+  gen_server:call(Node, {register_db, DBPid}).
 
 
-next_db(Method) ->
-  gen_server:call({global, ?SERVER}, {next_db, Method}).
+next_db(Node, Method) ->
+  gen_server:call(Node, {next_db, Method}).
 
 
-get_all_dbs() ->
-  gen_server:call({global, ?SERVER}, {get_all_dbs}).
+get_all_dbs(Node) ->
+  gen_server:call(Node, {get_all_dbs}).
 
-get_all_db_data() ->
-  DBs = get_all_dbs(),
+
+get_all_db_data(Node) ->
+  DBs = get_all_dbs(Node),
   Fun = fun(DB) ->
 	    Data = gen_server:call(DB, {get_all}),
 	    io:format("~p - ~p~n~n", [DB, Data])
@@ -74,6 +79,7 @@ get_all_db_data() ->
 %%--------------------------------------------------------------------
 init([]) ->
   process_flag(trap_exit, true),
+  node_manager:register_node(self()),
   {ok, #state{}}.
 
 %%--------------------------------------------------------------------

@@ -10,6 +10,8 @@
 
 -behaviour(gen_server).
 
+-define(SERVER, ?MODULE).
+
 %% API
 -export([start_link/1, insert/2, get_all/0, get_count/0, q/3, truncate/0]).
 
@@ -26,26 +28,26 @@
 %% Description: Starts the server
 %%--------------------------------------------------------------------
 start_link(InstanceId) ->
-  gen_server:start_link(?MODULE, [InstanceId], []).
+  gen_server:start_link(?SERVER, [InstanceId], []).
 
-insert(K,V) ->
-  gen_server:call(?MODULE, {insert, K, V}).
+insert(Node, V) ->
+  gen_server:call(Node, {insert, null, V}).  % TODO: generate key hashes
 
 q(list, Filter, Reduce) ->
-  gen_server:call(?MODULE, {q, list, Filter, Reduce});
+  gen_server:call(?SERVER, {q, list, Filter, Reduce});
 q(match_spec, MatchSpec, Reduce) ->
-  gen_server:call(?MODULE, {q, match_spec, MatchSpec, Reduce});
+  gen_server:call(?SERVER, {q, match_spec, MatchSpec, Reduce});
 q(dict, Filter, Reduce) ->
-  gen_server:call(?MODULE, {q, dict, Filter, Reduce}).
+  gen_server:call(?SERVER, {q, dict, Filter, Reduce}).
 
 get_all() ->
-  gen_server:call(?MODULE, {get_all}).
+  gen_server:call(?SERVER, {get_all}).
 
 get_count() ->
-  gen_server:call(?MODULE, {get_count}).
+  gen_server:call(?SERVER, {get_count}).
 
 truncate() ->
-  gen_server:call(?MODULE, {truncate}).
+  gen_server:call(?SERVER, {truncate}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -60,7 +62,7 @@ truncate() ->
 %%--------------------------------------------------------------------
 init(_InstanceId) ->
   process_flag(trap_exit, true),
-  node_manager:register_node(self()),
+  db_manager:register_db(local, self()),
   {ok, []}.
 
 %%--------------------------------------------------------------------

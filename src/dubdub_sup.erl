@@ -44,6 +44,13 @@ init(_Args) ->
      brutal_kill,
      worker,
      []},
+  DbManager =
+    {db_manager,
+     {db_manager, start_link, []},
+     permanent,
+     brutal_kill,
+     worker,
+     []},
   AdminServer =
     {admin_server,
      {admin, start_link, []},
@@ -54,5 +61,6 @@ init(_Args) ->
   {ok, {{one_for_one, 3, 10},
 	[
 	 DataLoader,
+	 DbManager,
 	 AdminServer
 	]}}.

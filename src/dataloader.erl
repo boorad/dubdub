@@ -62,9 +62,9 @@ init([]) ->
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
 handle_call({insert, Value}, _From, State) ->
-  Next = node_manager:next_node(?METHOD),
-  Reply = gen_server:call(Next, {insert, null, Value}),
-
+  NextNode = node_manager:next_node(?METHOD),
+  NextDb = db_manager:next_db(NextNode, ?METHOD),
+  Reply = db:insert(NextDb, Value),
   {reply, Reply, State};
 
 handle_call(_Request, _From, State) ->

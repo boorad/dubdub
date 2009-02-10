@@ -12,7 +12,8 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, register_node/1, next_node/1, get_all_nodes/0]).
+-export([start_link/0, register_node/1, next_node/1, get_all_nodes/0,
+	 get_all_db_data/0]).
 
 -define(SERVER, ?MODULE).
 
@@ -36,10 +37,13 @@ start_link() ->
   gen_server:start_link({global, ?SERVER}, ?MODULE, [], []).
 
 
-register_node(NodeName) ->
-  gen_server:call({global, ?SERVER}, {register_node, NodeName}).
+%% takes a new db_manager pid and registers it into State
+register_node(WorkerPid) ->
+  gen_server:call({global, ?SERVER}, {register_node, WorkerPid}).
 
 
+%% given a method like roundrobin or other, this returns the Pid of the
+%% next registered db_manager on an Erlang node
 next_node(Method) ->
   gen_server:call({global, ?SERVER}, {next_node, Method}).
 
@@ -47,6 +51,15 @@ next_node(Method) ->
 get_all_nodes() ->
   gen_server:call({global, ?SERVER}, {get_all_nodes}).
 
+
+get_all_db_data() ->
+  Nodes = get_all_nodes(),
+  Fun = fun(Node) ->
+	    io:format("Node: ~p~n", [Node]),
+	    db_manager:get_all_db_data(Node)
+	end,
+  lists:map(Fun, Nodes),
+  ok.
 
 %%====================================================================
 %% gen_server callbacks
@@ -81,15 +94,21 @@ handle_call({register_node, WorkerPid}, _From, State) ->
 handle_call({next_node, roundrobin}, _From, State) when
     length(State#state.nodes) > 0 ->
   [NextWorker|T] = State#state.nodes,
-  {reply, NextWorker, State#state{nodes=T, lookaside=[NextWorker|State#state.lookaside]}};
+  {reply,
+   NextWorker,
+   State#state{nodes=T,
+	       lookaside=[NextWorker|State#state.lookaside]}};
 
 handle_call({next_node, roundrobin}, _From, State) ->
   NewState = State#state{nodes=State#state.lookaside, lookaside=[]},
   [NextWorker|T] = NewState#state.nodes,
-  {reply, NextWorker, NewState#state{nodes=T, lookaside=[NextWorker|NewState#state.lookaside]}};
+  {reply,
+   NextWorker,
+   NewState#state{nodes=T,
+		  lookaside=[NextWorker|NewState#state.lookaside]}};
 
 handle_call({get_all_nodes}, _From, State) ->
-   AllNodes = lists:flatten([State#state.nodes, State#state.lookaside]),
+  AllNodes = lists:flatten([State#state.nodes, State#state.lookaside]),
   {reply, AllNodes, State};
 
 handle_call(_Request, _From, State) ->
