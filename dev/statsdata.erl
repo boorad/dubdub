@@ -4,8 +4,9 @@
 -module(statsdata).
 
 -import(lists, [foreach/2, append/2]).
--import(re, [split/2]).
+-import(re, [split/3]).
 -import(string, [join/2]).
+-import(file, [open/2]).
 
 -export([geography/0, read_geography_lines/2]).
 
@@ -32,7 +33,7 @@
 %% Load geography key from file
 geography() ->
   Dict = dict:new(),
-  {ok, S} = file:open("../dev/data/geograpghy_key.csv"),
+  {ok, S} = file:open("./data/geograpghy_key.csv", read),
   GeographyDict = read_geography_lines(Dict, S),
   
   % Print the whole dict, for debug.
@@ -51,7 +52,7 @@ read_geography_lines(Dict1, S) ->
     eof -> Dict1;
     _ ->
       % Split the line by ',' - note the cute hack to address commas in place name
-      L  = re:split(Line, ","),
+      L  = re:split(Line, ",", []),
       [SummaryLevel, GeographyId, GeographyName | CommaSplits] = L,
       
       % Re-join GeographyName with any illigitement comma splits
