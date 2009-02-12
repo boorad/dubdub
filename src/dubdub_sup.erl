@@ -51,16 +51,8 @@ init(_Args) ->
      brutal_kill,
      worker,
      []},
-  AdminServer =
-    {admin_server,
-     {admin, start_link, []},
-     permanent,
-     brutal_kill,
-     worker,
-     []},
   {ok, {{one_for_one, 3, 10},
 	[
 	 DataLoader,
-	 DbManager,
-	 AdminServer
+	 DbManager
 	]}}.

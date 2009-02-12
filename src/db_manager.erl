@@ -15,9 +15,11 @@
 
 -behaviour(gen_server).
 
+-include_lib("eunit/include/eunit.hrl").
+
 %% API
 -export([start_link/0, register_db/2, next_db/2, get_all_dbs/1,
-	 get_all_db_data/1]).
+	 get_all_db_data/1, get_counts/1, add_dbs/2, add_dbs/3]).
 
 -define(SERVER, ?MODULE).
 
@@ -42,9 +44,6 @@ start_link() ->
 
 
 %% register_db(Node, DBPid) -> ok | barfs
-register_db(local, DBPid) ->
-  register_db(?SERVER, DBPid);
-
 register_db(Node, DBPid) ->
   gen_server:call(Node, {register_db, DBPid}).
 
@@ -58,13 +57,25 @@ get_all_dbs(Node) ->
 
 
 get_all_db_data(Node) ->
-  DBs = get_all_dbs(Node),
-  Fun = fun(DB) ->
-	    Data = gen_server:call(DB, {get_all}),
-	    io:format("~p - ~p~n~n", [DB, Data])
-	end,
-  lists:map(Fun, DBs),
-  ok.
+  map_dbs(Node, fun db:get_all/1).
+
+
+get_counts(Node) ->
+  map_dbs(Node, fun db:get_count/1).
+
+%%--------------------------------------------------------------------
+%% Function: add_dbs(pid(), int()) -> ok
+%% Description: add new dbs to a node
+%%  Node is the db_manager on the erlang node for the new db
+%%--------------------------------------------------------------------
+% @doc add new dbs on the local node
+% @spec add_dbs(pid(), int()) -> ok
+add_dbs(Node, Count) ->
+  add_dbs(Node, Count, 0).
+
+% @spec add_dbs(pid(), int(), int()) -> ok
+add_dbs(Node, Count, Delay) ->
+  add_dbs_loop(Node, Count, Delay).
 
 %%====================================================================
 %% gen_server callbacks
@@ -80,6 +91,7 @@ get_all_db_data(Node) ->
 init([]) ->
   process_flag(trap_exit, true),
   node_manager:register_node(self()),
+  %% this crashes:  add_dbs(self(), 1),  %% add first db
   {ok, #state{}}.
 
 %%--------------------------------------------------------------------
@@ -111,6 +123,13 @@ handle_call({get_all_dbs}, _From, State) ->
    AllNodes = lists:flatten([State#state.dbs, State#state.lookaside]),
   {reply, AllNodes, State};
 
+%% %% start a new db process, sending in the pid of this db_manager as arg
+%% handle_call({add_db, NewId}, _From, State) ->
+%%   %%InstanceId = string:concat("db_", NewId),
+%%   Node = self(),
+%%   ?debugMsg(Node),
+%%   {reply, ok, State};
+
 handle_call(_Request, _From, State) ->
   {reply, ignored, State}.
 
@@ -132,7 +151,9 @@ handle_cast(_Msg, State) ->
 
 handle_info({'EXIT', From, _Reason}, State) ->
   #state{dbs=DBs, lookaside=Lookaside} = State,
-  {noreply, State#state{dbs=filter_db(From, DBs), lookaside=filter_db(From, Lookaside)}};
+  {noreply,
+   State#state{dbs=filter_db(From, DBs),
+	       lookaside=filter_db(From, Lookaside)}};
 
 handle_info(_Info, State) ->
   {noreply, State}.
@@ -159,3 +180,29 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 filter_db(DBPid, DBs) ->
   lists:filter(fun(DB) -> (DB =:= DBPid) == false end, DBs).
+
+
+map_dbs(Node, DbFun) ->
+  DBs = get_all_dbs(Node),
+  Fun = fun(DB) ->
+	    Data = DbFun(DB),
+	    io:format("~p - ~p~n~n", [DB, Data])
+	end,
+  lists:map(Fun, DBs),
+  ok.
+
+
+%% this adds databases to the local erlang node, main_sup.
+add_dbs_loop(_Node, 0, _) ->
+  ok;
+add_dbs_loop(Node, Count, Delay) ->
+  NewId = randoms:getRandomId(),
+  InstanceId = string:concat("db_", NewId),
+  supervisor:start_child(main_sup, {list_to_atom(NewId),
+				    {db, start_link, [Node, InstanceId]},
+				    permanent,
+				    brutal_kill,
+				    worker,
+				    []}),
+  timer:sleep(Delay),
+  add_dbs_loop(Node, Count - 1, Delay).

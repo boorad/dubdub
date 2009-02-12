@@ -54,7 +54,7 @@ start_node_manager() ->
   [Node | _T] = string:tokens(atom_to_list(node()), "@"),
   case Node of
     "boot" ->
-      io:format("boot node detected, starting node_manager..."),
+      io:format("boot node detected, starting node_manager...~n"),
       node_manager:start_link();
     _ ->
       ok

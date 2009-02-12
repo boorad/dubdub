@@ -47,10 +47,8 @@ gen() ->
 %% takes result of .dat file from gen/0 and loads it into a db node for
 %% performance testing so we can build 'dubdub' the proper way
 load() ->
-  db:start_link(),
-  db:truncate(),
   Fun = fun(Term) ->
-	    db:insert(null, Term)
+	    dataloader:insert(Term)
 	end,
   glogger:start_link(?DAT_FILE),
   glogger:upread(Fun)

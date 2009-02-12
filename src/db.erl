@@ -10,10 +10,12 @@
 
 -behaviour(gen_server).
 
+-include_lib("eunit/include/eunit.hrl").
+
 -define(SERVER, ?MODULE).
 
 %% API
--export([start_link/1, insert/2, get_all/0, get_count/0, q/3, truncate/0]).
+-export([start_link/2, insert/2, get_all/1, get_count/1, q/3, truncate/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -27,11 +29,17 @@
 %% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
 %% Description: Starts the server
 %%--------------------------------------------------------------------
-start_link(InstanceId) ->
-  gen_server:start_link(?SERVER, [InstanceId], []).
+start_link(Node, InstanceId) ->
+  case gen_server:start_link(?SERVER, [InstanceId], []) of
+    {ok, Pid} ->
+      db_manager:register_db(Node, Pid);
+    Msg ->
+      io:format("~p~n", [Msg])
+  end.
 
 insert(Node, V) ->
   gen_server:call(Node, {insert, null, V}).  % TODO: generate key hashes
+
 
 q(list, Filter, Reduce) ->
   gen_server:call(?SERVER, {q, list, Filter, Reduce});
@@ -40,14 +48,17 @@ q(match_spec, MatchSpec, Reduce) ->
 q(dict, Filter, Reduce) ->
   gen_server:call(?SERVER, {q, dict, Filter, Reduce}).
 
-get_all() ->
-  gen_server:call(?SERVER, {get_all}).
 
-get_count() ->
-  gen_server:call(?SERVER, {get_count}).
+get_all(Node) ->
+  gen_server:call(Node, {get_all}).
 
-truncate() ->
-  gen_server:call(?SERVER, {truncate}).
+
+get_count(Node) ->
+  gen_server:call(Node, {get_count}).
+
+
+truncate(Node) ->
+  gen_server:call(Node, {truncate}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -60,9 +71,9 @@ truncate() ->
 %%                         {stop, Reason}
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
-init(_InstanceId) ->
+init([InstanceId]) ->
   process_flag(trap_exit, true),
-  db_manager:register_db(local, self()),
+  io:format("starting DB ~p...~n", [InstanceId]),
   {ok, []}.
 
 %%--------------------------------------------------------------------

@@ -13,7 +13,7 @@
 
 %% API
 -export([start_link/0, register_node/1, next_node/1, get_all_nodes/0,
-	 get_all_db_data/0]).
+	 get_all_db_data/0, get_all_db_counts/0, add_dbs/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -53,13 +53,15 @@ get_all_nodes() ->
 
 
 get_all_db_data() ->
-  Nodes = get_all_nodes(),
-  Fun = fun(Node) ->
-	    io:format("Node: ~p~n", [Node]),
-	    db_manager:get_all_db_data(Node)
-	end,
-  lists:map(Fun, Nodes),
-  ok.
+  map_nodes(fun db_manager:get_all_db_data/1).
+
+
+get_all_db_counts() ->
+  map_nodes(fun db_manager:get_counts/1).
+
+
+add_dbs(Count) ->
+  add_dbs_loop(Count).
 
 %%====================================================================
 %% gen_server callbacks
@@ -159,3 +161,19 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 filter_worker(WorkerPid, Workers) ->
   lists:filter(fun(WP) -> (WP =:= WorkerPid) == false end, Workers).
+
+
+map_nodes(DbFun) ->
+  Nodes = get_all_nodes(),
+  Fun = fun(Node) ->
+	    io:format("Node: ~p~n", [Node]),
+	    DbFun(Node)
+	end,
+  lists:map(Fun, Nodes).
+
+
+add_dbs_loop(0) ->
+  ok;
+add_dbs_loop(Count) ->
+  db_manager:add_dbs(next_node(roundrobin), 1),
+  add_dbs_loop(Count-1).
