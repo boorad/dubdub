@@ -91,7 +91,6 @@ add_dbs(Node, Count, Delay) ->
 init([]) ->
   process_flag(trap_exit, true),
   node_manager:register_node(self()),
-  %% this crashes:  add_dbs(self(), 1),  %% add first db
   {ok, #state{}}.
 
 %%--------------------------------------------------------------------

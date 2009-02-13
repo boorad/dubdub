@@ -32,6 +32,7 @@ start(_Type, StartArgs) ->
   start_node_manager(),
   case dubdub_sup:start_link(StartArgs) of
     {ok, Pid} ->
+      node_manager:add_dbs(1),  %% start first db
       {ok, Pid};
     Error ->
       Error
