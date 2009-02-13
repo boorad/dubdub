@@ -51,8 +51,8 @@ load() ->
 	    dataloader:insert(Term)
 	end,
   glogger:start_link(?DAT_FILE),
-  glogger:upread(Fun)
-  .%glogger:stop().
+  glogger:upread(Fun),
+  glogger:stop().
 
 
 %%

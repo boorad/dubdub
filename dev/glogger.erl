@@ -12,6 +12,8 @@
 
 -behaviour(gen_server).
 
+-define(SERVER, ?MODULE).
+
 %% External exports
 -export([start_link/1, stop/0, log/1, upread/1, truncate/0]).
 
@@ -28,19 +30,19 @@
 %%% API
 %%%----------------------------------------------------------------------
 start_link(Filename) ->
-    gen_server:start_link({local, glogger}, glogger, Filename, []).
+  gen_server:start_link({local, ?SERVER}, ?MODULE, Filename, []).
 
 stop() ->
-    gen_server:call(glogger, stop).
+  gen_server:call(?SERVER, stop).
 
 log(Term) ->
-    gen_server:call(glogger, {log, term_to_binary(Term)}).
+  gen_server:call(?SERVER, {log, term_to_binary(Term)}).
 
 upread(Fun) ->
-    gen_server:call(glogger, {upread, Fun}, infinity).
+  gen_server:call(?SERVER, {upread, Fun}, infinity).
 
 truncate() ->
-    gen_server:call(glogger, truncate).
+  gen_server:call(?SERVER, truncate).
 
 
 
@@ -57,17 +59,17 @@ truncate() ->
 %%----------------------------------------------------------------------
 
 init(FileName) ->
-     case file:open(FileName, [read, write, raw, binary]) of
-	 {ok, Fd} ->
-	     {ok, Eof} = file:position(Fd, eof),
-	     file:position(Fd, bof),
-	     FilePos = position_fd(Fd, 0),
-	     maybe_warn(FilePos, Eof),
-	     {ok, Fd};
-	{error, Reason} ->
-	    warn("Can't open ~p~n", [FileName]),
-	     {stop, Reason}
-    end.
+  case file:open(FileName, [read, write, raw, binary]) of
+    {ok, Fd} ->
+      {ok, Eof} = file:position(Fd, eof),
+      file:position(Fd, bof),
+      FilePos = position_fd(Fd, 0),
+      maybe_warn(FilePos, Eof),
+      {ok, Fd};
+    {error, Reason} ->
+      warn("Can't open ~p~n", [FileName]),
+      {stop, Reason}
+  end.
 
 %%----------------------------------------------------------------------
 %% Func: handle_call/3
@@ -79,18 +81,18 @@ init(FileName) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_call({log, Bin}, _From, Fd) ->
-    {reply, log_binary(Fd, Bin) , Fd};
+  {reply, log_binary(Fd, Bin) , Fd};
 
 handle_call({upread, Fun}, _From, Fd) ->
-    {reply, upread(Fd, Fun), fd};
+  {reply, upread(Fd, Fun), fd};
 
 handle_call(truncate, _From, Fd) ->
-    file:position(Fd, bof),
-    file:truncate(Fd),
-    {reply, ok, Fd};
+  file:position(Fd, bof),
+  file:truncate(Fd),
+  {reply, ok, Fd};
 
-handle_call(stop, _, Fd) ->
-    {stop, stopped, Fd}.
+handle_call(stop, _From, Fd) ->
+  {stop, normal, Fd}.
 
 
 %%----------------------------------------------------------------------
@@ -100,7 +102,7 @@ handle_call(stop, _, Fd) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_cast(_Msg, State) ->
-    {noreply, State}.
+  {noreply, State}.
 
 %%----------------------------------------------------------------------
 %% Func: handle_info/2
@@ -109,16 +111,16 @@ handle_cast(_Msg, State) ->
 %%          {stop, Reason, State}            (terminate/2 is called)
 %%----------------------------------------------------------------------
 handle_info(_Info, State) ->
-    {noreply, State}.
+  {noreply, State}.
 
 %%----------------------------------------------------------------------
 %% Func: terminate/2
 %% Purpose: Shutdown the server
 %% Returns: any (ignored by gen_server)
 %%----------------------------------------------------------------------
-terminate(Reason, Fd) ->
+terminate(_Reason, Fd) ->
   file:close(Fd),
-  {terminated, Reason}.
+  ok.
 
 %%--------------------------------------------------------------------
 %% Func: code_change(OldVsn, State, Extra) -> {ok, NewState}
@@ -132,59 +134,59 @@ code_change(_OldVsn, State, _Extra) ->
 %%%----------------------------------------------------------------------
 
 maybe_warn(FilePos, Eof) ->
-    if
-	FilePos == Eof ->
-	    ok;
-	true ->
-	    warn("~w bytes truncated \n",
-		 [Eof - FilePos])
-    end.
+  if
+    FilePos == Eof ->
+      ok;
+    true ->
+      warn("~w bytes truncated \n",
+	   [Eof - FilePos])
+  end.
 
 
 position_fd(Fd, LastPos) ->
-    case catch getint32(Fd) of
-	Int when is_integer(Int) ->
-	    case file:read(Fd, Int) of
-		{ok, B} when size(B) ==  Int ->
-		    position_fd(Fd, LastPos + 4 + Int);
-		_ ->
-		    file:position(Fd, LastPos),
-		    file:truncate(Fd)
-	    end;
+  case catch getint32(Fd) of
+    Int when is_integer(Int) ->
+      case file:read(Fd, Int) of
+	{ok, B} when size(B) ==  Int ->
+	  position_fd(Fd, LastPos + 4 + Int);
 	_ ->
-	    file:position(Fd, LastPos),
-	    file:truncate(Fd),
-	    LastPos
-    end.
+	  file:position(Fd, LastPos),
+	  file:truncate(Fd)
+      end;
+    _ ->
+      file:position(Fd, LastPos),
+      file:truncate(Fd),
+      LastPos
+  end.
 
 log_binary(Fd, Bin) ->
-    Sz = size(Bin),
-    case file:write(Fd, [i32(Sz), Bin]) of
-	ok ->
-	    ok;
-	{error, Reason} ->
-	    warn("Cant't write logfile ~p ", [Reason]),
-	    {error, Reason}
-    end.
+  Sz = size(Bin),
+  case file:write(Fd, [i32(Sz), Bin]) of
+    ok ->
+      ok;
+    {error, Reason} ->
+      warn("Cant't write logfile ~p ", [Reason]),
+      {error, Reason}
+  end.
 
 
 warn(Fmt, As) ->
-    io:format(user, "glogger: " ++ Fmt, [As]).
+  io:format(user, "glogger: " ++ Fmt, [As]).
 
 
 upread(Fd, Fun) ->
-    {ok, _Curr} = file:position(Fd, cur),
-    file:position(Fd, bof),
-    upread(Fd, get_term(Fd), Fun).
+  {ok, _Curr} = file:position(Fd, cur),
+  file:position(Fd, bof),
+  upread(Fd, get_term(Fd), Fun).
 
 upread(_Fd, {'EXIT', _}, _Fun) ->
-    ok;
+  ok;
 upread(Fd, Term, Fun) ->
-    Fun(Term),
-    upread(Fd, catch get_term(Fd), Fun).
+  Fun(Term),
+  upread(Fd, catch get_term(Fd), Fun).
 
 
 get_term(Fd) ->
-    I = getint32(Fd),
-    {ok, B} = file:read(Fd, I),
-    binary_to_term(B).
+  I = getint32(Fd),
+  {ok, B} = file:read(Fd, I),
+  binary_to_term(B).
