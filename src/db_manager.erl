@@ -109,6 +109,10 @@ handle_call({register_db, WorkerPid}, _From, State) ->
 
 %% round robin implementation
 handle_call({next_db, roundrobin}, _From, State) when
+    length(State#state.dbs) == 0, length(State#state.lookaside) == 0->
+  {reply, empty_db_manager, State};
+
+handle_call({next_db, roundrobin}, _From, State) when
     length(State#state.dbs) > 0 ->
   [NextDB|T] = State#state.dbs,
   {reply, NextDB, State#state{dbs=T, lookaside=[NextDB|State#state.lookaside]}};
