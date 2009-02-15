@@ -39,8 +39,12 @@ start_link() ->
 
 %% takes a new db_manager pid and registers it into State
 register_node(WorkerPid) ->
-  gen_server:call({global, ?SERVER}, {register_node, WorkerPid}).
-
+  case is_pid(WorkerPid) of
+    true ->
+      gen_server:call({global, ?SERVER}, {register_node, WorkerPid});
+    _ ->
+      {error, cannot_register_non_pid}
+  end.
 
 %% given a method like roundrobin or other, this returns the Pid of the
 %% next registered db_manager on an Erlang node
