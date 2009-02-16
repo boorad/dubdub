@@ -29,11 +29,15 @@ start() ->
 %% top supervisor of the tree.
 %%--------------------------------------------------------------------
 start(_Type, StartArgs) ->
-  start_node_manager(),
-  case dubdub_sup:start_link(StartArgs) of
-    {ok, Pid} ->
-      node_manager:add_dbs(1),  %% start first db
-      {ok, Pid};
+  case start_node(boot@boorad) of  %% TODO: remove hardcode
+    ok ->
+      case dubdub_sup:start_link(StartArgs) of
+	{ok, Pid} ->
+	  node_manager:add_dbs(1),  %% start first db
+	  {ok, Pid};
+	Error ->
+	  Error
+      end;
     Error ->
       Error
   end.
@@ -51,12 +55,39 @@ stop(_State) ->
 %% Internal functions
 %%====================================================================
 
-start_node_manager() ->
+start_node(BootNode) ->
   [Node | _T] = string:tokens(atom_to_list(node()), "@"),
   case Node of
     "boot" ->
-      io:format("boot node detected, starting node_manager...~n"),
-      node_manager:start_link();
+      start_boot_node();
     _ ->
-      ok
+      start_worker_node(BootNode)
+  end,
+
+  %% TODO: this is called too soon after ping (if worker), and is not seeing
+  %%       node_manager :(    Do we need a timeout of some kind?
+  node_manager_present().
+
+
+start_boot_node() ->
+  io:format("boot node detected, starting node_manager...~n"),
+  node_manager:start_link().
+
+
+start_worker_node(BootNode) ->
+  io:format("worker node detected, pinging boot node...~n"),
+  case net_adm:ping(BootNode) of
+    pong ->
+      io:format("successfully joined cluster~n");
+    _ ->
+      io:format("could not join cluster~n")
+  end.
+
+
+node_manager_present() ->
+  case lists:member(node_manager,global:registered_names()) of
+    true ->
+      ok;
+    _ ->
+      {error, node_manager_not_detected}
   end.

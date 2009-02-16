@@ -2,6 +2,9 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+%%% These tests are trying to isolate node_manager internals and are not the
+%%% main integration tests running the entire system (dubdub_test.erl).
+
 register_test_() ->
   [{setup,
     fun() -> node_manager:start_link() end,
