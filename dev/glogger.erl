@@ -92,7 +92,7 @@ handle_call(truncate, _From, Fd) ->
   {reply, ok, Fd};
 
 handle_call(stop, _From, Fd) ->
-  {stop, normal, Fd}.
+  {stop, normal, ok, Fd}.
 
 
 %%----------------------------------------------------------------------
