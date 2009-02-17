@@ -19,7 +19,7 @@
 
 %% API
 -export([start_link/0, register_db/2, next_db/2, get_all_dbs/1,
-	 get_all_db_data/1, get_counts/1, add_dbs/2, add_dbs/3]).
+	 get_all_db_data/1, get_counts/1, add_dbs/2, add_dbs/3, q/4]).
 
 -define(SERVER, ?MODULE).
 
@@ -77,6 +77,11 @@ add_dbs(Node, Count) ->
 add_dbs(Node, Count, Delay) ->
   add_dbs_loop(Node, Count, Delay).
 
+q(Node, Type, Map, Reduce) ->
+  map_dbs(Node, fun(Db) ->
+		    db:q(Db, Type, Map, Reduce)
+		end).
+
 %%====================================================================
 %% gen_server callbacks
 %%====================================================================
@@ -125,13 +130,6 @@ handle_call({next_db, roundrobin}, _From, State) ->
 handle_call({get_all_dbs}, _From, State) ->
    AllNodes = lists:flatten([State#state.dbs, State#state.lookaside]),
   {reply, AllNodes, State};
-
-%% %% start a new db process, sending in the pid of this db_manager as arg
-%% handle_call({add_db, NewId}, _From, State) ->
-%%   %%InstanceId = string:concat("db_", NewId),
-%%   Node = self(),
-%%   ?debugMsg(Node),
-%%   {reply, ok, State};
 
 handle_call(_Request, _From, State) ->
   {reply, ignored, State}.
@@ -187,13 +185,7 @@ filter_db(DBPid, DBs) ->
 
 map_dbs(Node, DbFun) ->
   DBs = get_all_dbs(Node),
-  Fun = fun(DB) ->
-	    Data = DbFun(DB),
-	    io:format("~p - ~p~n~n", [DB, Data])
-	end,
-  lists:map(Fun, DBs),
-  ok.
-
+  lists:map(DbFun, DBs).
 
 %% this adds databases to the local erlang node, main_sup.
 add_dbs_loop(_Node, 0, _) ->

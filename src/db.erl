@@ -15,7 +15,8 @@
 -define(SERVER, ?MODULE).
 
 %% API
--export([start_link/2, insert/2, get_all/1, get_count/1, q/3, truncate/1]).
+-export([start_link/2, insert/2, get_all/1, get_docs_limit/2, get_count/1, q/4,
+	 truncate/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -41,16 +42,25 @@ insert(Node, V) ->
   gen_server:call(Node, {insert, null, V}).  % TODO: generate key hashes
 
 
-q(list, Filter, Reduce) ->
-  gen_server:call(?SERVER, {q, list, Filter, Reduce});
-q(match_spec, MatchSpec, Reduce) ->
-  gen_server:call(?SERVER, {q, match_spec, MatchSpec, Reduce});
-q(dict, Filter, Reduce) ->
-  gen_server:call(?SERVER, {q, dict, Filter, Reduce}).
+q(Db, match_spec, MatchSpec, Reduce) ->
+  CompiledMatchSpec = ets:match_spec_compile(MatchSpec),
+  case ets:is_compiled_ms(CompiledMatchSpec) of
+    true ->
+      gen_server:call(Db, {q, match_spec, CompiledMatchSpec, Reduce});
+    _ ->
+      {error, bad_matchspec}
+  end;
+
+q(Db, Type, Map, Reduce) ->
+  gen_server:call(Db, {q, Type, Map, Reduce}).
 
 
 get_all(Node) ->
   gen_server:call(Node, {get_all}).
+
+
+get_docs_limit(Db, Limit) ->
+  gen_server:call(Db, {get_docs_limit, Limit}).
 
 
 get_count(Node) ->
@@ -72,7 +82,7 @@ truncate(Node) ->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init([InstanceId]) ->
-  process_flag(trap_exit, true),
+  %%process_flag(trap_exit, true),
   io:format("starting DB ~p...~n", [InstanceId]),
   {ok, []}.
 
@@ -93,8 +103,7 @@ handle_call({q, list, Filter, _Reduce}, _From, State) ->
   Results = lists:filter(Filter, State),
   {reply, {ok, Results}, State};
 
-handle_call({q, match_spec, MatchSpec, _Reduce}, _From, State) ->
-  CompiledMatchSpec = ets:match_spec_compile(MatchSpec),
+handle_call({q, match_spec, CompiledMatchSpec, _Reduce}, _From, State) ->
   Results = ets:match_spec_run(State, CompiledMatchSpec),
   {reply, {ok, Results}, State};
 
@@ -104,6 +113,11 @@ handle_call({q, dict, Filter, _Reduce}, _From, State) ->
 
 handle_call({get_all}, _From, State) ->
   {reply, {ok, State}, State};
+
+handle_call({get_docs_limit, Limit}, _From, State) ->
+  %% TODO: validate Limit is_integer() somehow?
+  Return = lists:sublist(State, Limit),
+  {reply, {ok, Return}, State};
 
 handle_call({get_count}, _From, State) ->
   {reply, {ok, length(State)}, State};
