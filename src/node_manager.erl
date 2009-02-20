@@ -58,14 +58,16 @@ get_all_nodes() ->
 
 
 %% across all nodes, all db's, get a dump of the data
-%% careful ;)  you have been warned.
+%% careful, this dumps it all ;)  you have been warned.
 get_all_db_data() ->
   map_nodes(fun db_manager:get_all_db_data/1).
 
 
 %% per node, and per db, returns count of # docs.
 get_all_db_counts() ->
-  map_nodes(fun db_manager:get_counts/1).
+  map_nodes(fun(Node) ->
+	       {Node, db_manager:get_counts(Node)}
+	    end).
 
 
 %% add Count db's to the cluster
@@ -182,14 +184,9 @@ filter_worker(WorkerPid, Workers) ->
 
 
 %% convenience fun to map across all nodes
-%% TODO: take io:format out and return list to requestor
-map_nodes(DbFun) ->
+map_nodes(NodeFun) ->
   Nodes = get_all_nodes(),
-  Fun = fun(Node) ->
-	    io:format("Node: ~p~n", [Node]),
-	    DbFun(Node)
-	end,
-  lists:map(Fun, Nodes).
+  lists:map(NodeFun, Nodes).
 
 
 %% loop to add db's to the cluster.
