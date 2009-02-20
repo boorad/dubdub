@@ -35,10 +35,8 @@
 %% API
 %%====================================================================
 
-%%--------------------------------------------------------------------
 %% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
-%% Description: Starts the server
-%%--------------------------------------------------------------------
+%% Description: Starts the server, register it locally on this node
 start_link() ->
   gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
@@ -48,26 +46,31 @@ register_db(Node, DBPid) ->
   gen_server:call(Node, {register_db, DBPid}).
 
 
+%% get the next db on this node, depending on Method passed in
+%% for now, roundrobin is only one implemented
 next_db(Node, Method) ->
   gen_server:call(Node, {next_db, Method}).
 
 
+%% get a list of all the db pids on the provided node
 get_all_dbs(Node) ->
   gen_server:call(Node, {get_all_dbs}).
 
 
+%% get_all_db_data(Node) -> [Results]
+%% get a dump of all the data in all the db's on the provided node
 get_all_db_data(Node) ->
   map_dbs(Node, fun db:get_all/1).
 
 
+%% get_counts(Node) -> {ok, Count}
 get_counts(Node) ->
   map_dbs(Node, fun db:get_count/1).
 
-%%--------------------------------------------------------------------
+
 %% Function: add_dbs(pid(), int()) -> ok
 %% Description: add new dbs to a node
 %%  Node is the db_manager on the erlang node for the new db
-%%--------------------------------------------------------------------
 % @doc add new dbs on the local node
 % @spec add_dbs(pid(), int()) -> ok
 add_dbs(Node, Count) ->
@@ -77,6 +80,10 @@ add_dbs(Node, Count) ->
 add_dbs(Node, Count, Delay) ->
   add_dbs_loop(Node, Count, Delay).
 
+
+%% Function: q(Node, Type, Map, Reduce) -> {ok, Results}
+%% Description: query the databases on the provided node, returning results.
+%%              as of now, this is rdbms style, m/r isn't quite working.
 q(Node, Type, Map, Reduce) ->
   map_dbs(Node, fun(Db) ->
 		    db:q(Db, Type, Map, Reduce)
@@ -108,11 +115,14 @@ init([]) ->
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
 
+%% register this db pid into the db_manager
 handle_call({register_db, WorkerPid}, _From, State) ->
   link(WorkerPid),
   {reply, ok, State#state{dbs=[WorkerPid|State#state.dbs]}};
 
-%% round robin implementation
+
+%% get the next db in this node
+%%  * round robin implementation *
 handle_call({next_db, roundrobin}, _From, State) when
     length(State#state.dbs) == 0, length(State#state.lookaside) == 0->
   {reply, empty_db_manager, State};
@@ -127,10 +137,12 @@ handle_call({next_db, roundrobin}, _From, State) ->
   [NextDB|T] = NewState#state.dbs,
   {reply, NextDB, NewState#state{dbs=T, lookaside=[NextDB|NewState#state.lookaside]}};
 
+%% get all of the db pids on this node
 handle_call({get_all_dbs}, _From, State) ->
    AllNodes = lists:flatten([State#state.dbs, State#state.lookaside]),
   {reply, AllNodes, State};
 
+%% bad message, ignored
 handle_call(_Request, _From, State) ->
   {reply, ignored, State}.
 
@@ -183,11 +195,13 @@ filter_db(DBPid, DBs) ->
   lists:filter(fun(DB) -> (DB =:= DBPid) == false end, DBs).
 
 
+%% convenience fun to map across all db's on the provided node
 map_dbs(Node, DbFun) ->
   DBs = get_all_dbs(Node),
   lists:map(DbFun, DBs).
 
-%% this adds databases to the local erlang node, main_sup.
+
+%% adds databases to the supplied erlang node, main_sup.
 add_dbs_loop(_Node, 0, _) ->
   ok;
 add_dbs_loop(Node, Count, Delay) ->

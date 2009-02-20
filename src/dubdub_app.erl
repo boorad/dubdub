@@ -55,6 +55,9 @@ stop(_State) ->
 %% Internal functions
 %%====================================================================
 
+%% Function: start_node(BootNode) -> ok | {error, Msg}
+%% Description: start the node as either boot or worker, based on this node's
+%%              name.  There can be only one with node name 'boot@....'
 start_node(BootNode) ->
   [Node | _T] = string:tokens(atom_to_list(node()), "@"),
   case Node of
@@ -69,11 +72,15 @@ start_node(BootNode) ->
   node_manager_present().
 
 
+%% Function: start_boot_node() -> {ok, Pid}
+%% Description: starts the node_manager, which is unique to boot node
 start_boot_node() ->
   io:format("boot node detected, starting node_manager...~n"),
   node_manager:start_link().
 
 
+%% Function: start_worker_node(BootNode) -> pong | pang
+%% Description: ping the boot node and establish this node into the cluster
 start_worker_node(BootNode) ->
   io:format("worker node detected, pinging boot node...~n"),
   case net_adm:ping(BootNode) of
@@ -84,6 +91,9 @@ start_worker_node(BootNode) ->
   end.
 
 
+%% Function: node_manager_present() -> true | false
+%% Description: detect whether node_manager is up and running, after having
+%%              started whatever this node is (boot or worker).
 node_manager_present() ->
   case lists:member(node_manager,global:registered_names()) of
     true ->

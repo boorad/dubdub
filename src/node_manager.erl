@@ -52,18 +52,23 @@ next_node(Method) ->
   gen_server:call({global, ?SERVER}, {next_node, Method}).
 
 
+%% get a list of all the nodes registered in the cluster
 get_all_nodes() ->
   gen_server:call({global, ?SERVER}, {get_all_nodes}).
 
 
+%% across all nodes, all db's, get a dump of the data
+%% careful ;)  you have been warned.
 get_all_db_data() ->
   map_nodes(fun db_manager:get_all_db_data/1).
 
 
+%% per node, and per db, returns count of # docs.
 get_all_db_counts() ->
   map_nodes(fun db_manager:get_counts/1).
 
 
+%% add Count db's to the cluster
 add_dbs(Count) ->
   add_dbs_loop(Count).
 
@@ -92,9 +97,13 @@ init([]) ->
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
 
+%% register a node in the cluster
 handle_call({register_node, WorkerPid}, _From, State) ->
   link(WorkerPid),
   {reply, ok, State#state{nodes=[WorkerPid|State#state.nodes]}};
+
+
+%% return the next node in the cluster
 
 %% round robin implementation
 handle_call({next_node, roundrobin}, _From, State) when
@@ -113,12 +122,15 @@ handle_call({next_node, roundrobin}, _From, State) ->
    NewState#state{nodes=T,
 		  lookaside=[NextWorker|NewState#state.lookaside]}};
 
+%% get a list of all the nodes in the cluster
 handle_call({get_all_nodes}, _From, State) ->
   AllNodes = lists:flatten([State#state.nodes, State#state.lookaside]),
   {reply, AllNodes, State};
 
+%% bad message, ignored
 handle_call(_Request, _From, State) ->
   {reply, ignored, State}.
+
 
 %%--------------------------------------------------------------------
 %% Function: handle_cast(Msg, State) -> {noreply, State} |
@@ -163,10 +175,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+
+
 filter_worker(WorkerPid, Workers) ->
   lists:filter(fun(WP) -> (WP =:= WorkerPid) == false end, Workers).
 
 
+%% convenience fun to map across all nodes
+%% TODO: take io:format out and return list to requestor
 map_nodes(DbFun) ->
   Nodes = get_all_nodes(),
   Fun = fun(Node) ->
@@ -176,6 +192,8 @@ map_nodes(DbFun) ->
   lists:map(Fun, Nodes).
 
 
+%% loop to add db's to the cluster.
+%% TODO: roundrobin is hardcoded
 add_dbs_loop(0) ->
   ok;
 add_dbs_loop(Count) ->

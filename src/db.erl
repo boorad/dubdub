@@ -26,22 +26,29 @@
 %%====================================================================
 %% API
 %%====================================================================
-%%--------------------------------------------------------------------
+
 %% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
 %% Description: Starts the server
-%%--------------------------------------------------------------------
 start_link(Node, InstanceId) ->
   case gen_server:start_link(?SERVER, [InstanceId], []) of
     {ok, Pid} ->
-      db_manager:register_db(Node, Pid);
+      db_manager:register_db(Node, Pid),
+      {ok, Pid};
     Msg ->
-      io:format("~p~n", [Msg])
+      io:format("~p~n", [Msg]),
+      {error, Msg}
   end.
 
+
+%% insert a document value into a given node
 insert(Node, V) ->
   gen_server:call(Node, {insert, null, V}).  % TODO: generate key hashes
 
+%%
+%% query a db process
+%%
 
+%% for tuples/match_spec
 q(Db, match_spec, MatchSpec, Reduce) ->
   CompiledMatchSpec = ets:match_spec_compile(MatchSpec),
   case ets:is_compiled_ms(CompiledMatchSpec) of
@@ -51,24 +58,29 @@ q(Db, match_spec, MatchSpec, Reduce) ->
       {error, bad_matchspec}
   end;
 
+%% for all other data structures and query methods
 q(Db, Type, Map, Reduce) ->
   gen_server:call(Db, {q, Type, Map, Reduce}).
 
 
-get_all(Node) ->
-  gen_server:call(Node, {get_all}).
+%% get all documents in the supplied DB
+get_all(Db) ->
+  gen_server:call(Db, {get_all}).
 
 
+%% get first 'Limit' number of docs in the supplied DB
 get_docs_limit(Db, Limit) ->
   gen_server:call(Db, {get_docs_limit, Limit}).
 
 
-get_count(Node) ->
-  gen_server:call(Node, {get_count}).
+%% get a count of the docs in the provided DB
+get_count(Db) ->
+  gen_server:call(Db, {get_count}).
 
 
-truncate(Node) ->
-  gen_server:call(Node, {truncate}).
+%% whack all data in the provided DB
+truncate(Db) ->
+  gen_server:call(Db, {truncate}).
 
 %%====================================================================
 %% gen_server callbacks
@@ -114,10 +126,14 @@ handle_call({q, dict, Filter, _Reduce}, _From, State) ->
 handle_call({get_all}, _From, State) ->
   {reply, {ok, State}, State};
 
-handle_call({get_docs_limit, Limit}, _From, State) ->
-  %% TODO: validate Limit is_integer() somehow?
-  Return = lists:sublist(State, Limit),
-  {reply, {ok, Return}, State};
+handle_call({get_docs_limit, Limit}, _From, State) when is_integer(Limit) ->
+  Return = case is_integer(Limit) of
+	     true ->
+	       {ok, lists:sublist(State, Limit)};
+	     _ ->
+	       {error, badarg, get_docs_limit, non_integer}
+	   end,
+  {reply, Return, State};
 
 handle_call({get_count}, _From, State) ->
   {reply, {ok, length(State)}, State};
