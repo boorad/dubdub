@@ -81,7 +81,7 @@ test() ->
   [{ok, Results}] = Return, %% db_manager:q(Node, tuple, FMap, FReduce),
 
   io:format("Query Results     : ~p~n", [Results]),
-  io:format("Time (us): ~p~n", [Time]),
+  io:format("Time (usec): ~p~n", [Time]),
 %%   io:format("Query Results Len : ~p~n", [length(Results)]),
   ok.
 
@@ -89,7 +89,8 @@ stop() ->
   application:stop(dubdub).
 
 
-%% TODO: prolly needs to go into utils at some point
+%% TODO: prolly needs to go into utils at some point,
+%%       maybe an aggregation module w/ lots of methods like this
 sum([H|T]) ->
   H + sum(T);
 sum([]) ->
