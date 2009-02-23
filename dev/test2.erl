@@ -55,21 +55,18 @@ test() ->
   [Node | _T] = node_manager:get_all_nodes(),
 
   FMap = fun(Pid, X) ->
-	     %% filtering part (basically Jan. 2008, all stores)
-	     %% screw match_spec for this.  pattern matching should work ok
-	     %%  although, what about a badmatch?  trap it?
-	     {_Key, {{time, {{year,Year},{month,Month}}},
-	      {store,_Store},
-	      {data, Data}}} = X,
-	     %% send P&L line items to reducer
-	     case (Year =:= 2008 andalso Month =:= 11) of
-	       true ->
-		 F = fun(LineItem) ->
-			 Pid ! LineItem
-		     end,
-		 lists:foreach(F, Data);
-	       _ ->
-		 nomatch
+	     try
+	       %% filtering part (basically Jan. 2008, all stores)
+	       {_Key, {{time, {{year,2008},{month,1}}},
+		       {store,_Store},
+		       {data, Data}}} = X,
+	       %% send P&L line items (they're {K,V}) to reducer
+	       F = fun(LineItem) ->
+		       Pid ! LineItem
+		   end,
+	       lists:foreach(F, Data)
+	     catch
+	       _:_ -> badmatch
 	     end
 	 end,
 
