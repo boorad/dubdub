@@ -48,15 +48,15 @@ insert(Node, V) ->
 %% query a db process
 %%
 
-%% for tuples/match_spec
-q(Db, match_spec, MatchSpec, Reduce) ->
-  CompiledMatchSpec = ets:match_spec_compile(MatchSpec),
-  case ets:is_compiled_ms(CompiledMatchSpec) of
-    true ->
-      gen_server:call(Db, {q, match_spec, CompiledMatchSpec, Reduce});
-    _ ->
-      {error, bad_matchspec}
-  end;
+%% %% for tuples/match_spec
+%% q(Db, match_spec, MatchSpec, Reduce) ->
+%%   CompiledMatchSpec = ets:match_spec_compile(MatchSpec),
+%%   case ets:is_compiled_ms(CompiledMatchSpec) of
+%%     true ->
+%%       gen_server:call(Db, {q, match_spec, CompiledMatchSpec, Reduce});
+%%     _ ->
+%%       {error, bad_matchspec}
+%%   end;
 
 %% for all other data structures and query methods
 q(Db, Type, Map, Reduce) ->
@@ -115,9 +115,13 @@ handle_call({q, list, Filter, _Reduce}, _From, State) ->
   Results = lists:filter(Filter, State),
   {reply, {ok, Results}, State};
 
-handle_call({q, match_spec, CompiledMatchSpec, _Reduce}, _From, State) ->
-  Results = ets:match_spec_run(State, CompiledMatchSpec),
+handle_call({q, tuple, Map, Reduce}, _From, State) ->
+  Results = phofs:mapreduce(Map, Reduce, [], State),
   {reply, {ok, Results}, State};
+
+%% handle_call({q, match_spec, CompiledMatchSpec, _Reduce}, _From, State) ->
+%%   Results = ets:match_spec_run(State, CompiledMatchSpec),
+%%   {reply, {ok, Results}, State};
 
 handle_call({q, dict, Filter, _Reduce}, _From, State) ->
   Results = dict_filter(Filter, State),

@@ -146,7 +146,7 @@ get_month_store_query() ->
     "  AND gmonth-96 between 1 and 12 "
     "GROUP BY gmonth, gstore "
     "ORDER BY gstore, gmonth "
-    "LIMIT 100;".  % for dev
+    "LIMIT 1000;".  % for dev
 
 
 get_singledoc_query(M, S) ->
@@ -177,7 +177,8 @@ parse_singledoc(RS) ->
 format_singledoc(json, Raw) ->
   {obj, Raw};
 format_singledoc(tuple, Raw) ->
-  list_to_tuple(Raw).
+  Raw.
+%%   list_to_tuple(Raw).
 
 
 get_storeinfo_query(S) ->
@@ -217,7 +218,7 @@ parse_storeinfo(tuple, RS) ->
   {Store, SiteCity, SiteState, SiteZip, Exterior, Interior, Restroom,
    Breakfast, Sunday, AdiName, Adi, Ownership, Playground, SeatCount,
    ParkingSpaces} = StoreInfo,
-  {
+  [
    {"store_num", val(Store)},
    {"city", val(SiteCity)},
    {"state", val(SiteState)},
@@ -233,7 +234,7 @@ parse_storeinfo(tuple, RS) ->
    {"playground", val(Playground)},
    {"seats", int(SeatCount)},
    {"parking_spaces", int(ParkingSpaces)}
-  }.
+  ].
 
 
 
