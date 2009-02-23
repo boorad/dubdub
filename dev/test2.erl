@@ -1,12 +1,15 @@
 -module(test2).
 
--export([test/0]).
+-export([start/0, test/0, stop/0]).
+
+start() ->
+  application:start(dubdub),
+  testdata:load().
+
 
 %% let's test tuples as our doc structure
 test() ->
   io:format("Test 2 - Tuples~n"),
-  application:start(dubdub),
-  testdata:load(),
 
   %% test a query
 
@@ -59,7 +62,7 @@ test() ->
 	      {store,_Store},
 	      {data, Data}}} = X,
 	     %% send P&L line items to reducer
-	     case (Year =:= 2008 andalso Month =:= 1) of
+	     case (Year =:= 2008 andalso Month =:= 11) of
 	       true ->
 		 F = fun(LineItem) ->
 			 Pid ! LineItem
@@ -74,12 +77,17 @@ test() ->
 		[{Key, sum(Vals)} | A]
 	   end,
 
-  [{ok, Results}] = db_manager:q(Node, tuple, FMap, FReduce),
+  {Time, Return} = timer:tc(db_manager, q, [Node, tuple, FMap, FReduce]),
+  [{ok, Results}] = Return, %% db_manager:q(Node, tuple, FMap, FReduce),
 
   io:format("Query Results     : ~p~n", [Results]),
+  io:format("Time (us): ~p~n", [Time]),
 %%   io:format("Query Results Len : ~p~n", [length(Results)]),
+  ok.
 
+stop() ->
   application:stop(dubdub).
+
 
 %% TODO: prolly needs to go into utils at some point
 sum([H|T]) ->
