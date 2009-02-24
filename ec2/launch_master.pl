@@ -27,13 +27,25 @@ my $cluster_size = $opts{s} || 1;
 my $key_id     = $opts{i} || $ENV{AWS_ACCESS_KEY_ID};
 my $secret_key = $opts{k} || $ENV{AWS_SECRET_ACCESS_KEY};
 
-# Generate a keypair for the cluster and store it in EC2 directory
-system(  "ec2-add-keypair "
-       . $cluster_name
-       . ".keypair >  ~/.ec2/"
-       . $cluster_name
-       . ".pem");
-system("chmod 600  ~/.ec2/" . $cluster_name . ".pem");
+print "\nChecking keypair...\n";
+
+# Only create a keypair if it does not already exist
+unless (-e $ENV{HOME} . "/.ec2/$cluster_name.pem")
+{
+    print "\nGenerating keypair...\n";
+
+    # Generate a keypair for the cluster and store it in EC2 directory
+    system(  "ec2-add-keypair "
+           . $cluster_name
+           . ".keypair >  ~/.ec2/"
+           . $cluster_name
+           . ".pem");
+    system("chmod 600  ~/.ec2/" . $cluster_name . ".pem");
+}
+else
+{
+    print "Using existing keypair...\n";
+}
 
 my $ec2 = Net::Amazon::EC2->new(AWSAccessKeyId  => $key_id,
                                 SecretAccessKey => $secret_key,);
@@ -60,6 +72,7 @@ my $instance_command =
   . $cluster_name
   . ".keypair --instance-type m1.small -z us-east-1a -n $cluster_size";
 print "$instance_command\n";
+print "Launching instance(s)...\n";
 my $instance_info = `$instance_command`;
 
 print "$instance_info\n";
@@ -71,6 +84,7 @@ my $instance_id = $instance_fields[4];
 #print dump(@instance_fields);
 
 # Create EBS Volume for Data Store from Econ Snapshot
+print "\nCreating EBS Volume from stats data...\n";
 my $ebs_info =
   `ec2-create-volume -s 230 -z us-east-1a --snapshot snap-0bdf3f62`;
 print $ebs_info;
@@ -93,38 +107,50 @@ my $volume_id = $ebs_fields[1];
 #  }
 #}
 
+print "\nWaiting for EC2 instance to show up to attach EBS...\n";
 my $booted = 0;
+
 # Wait for that instance to boot, then attach the EBS volume
-while($booted == 0)
+while ($booted == 0)
 {
-  my $running_instances = $ec2->describe_instances({InstanceId => $instance_id});
-  
-   foreach my $reservation (@$running_instances) {
-      foreach my $instance ($reservation->instances_set)
-      {
-          if($instance->instance_state->name eq 'running')
-          {
-            $booted = 1;
-            
-            # Attach EBS Volume to Master Instance
-            my $attach_command = "ec2-attach-volume $volume_id -i " . $instance_id . " -d /dev/sdf";
-            my $attach_output = `$attach_command`;
-            print $attach_output;
-            
-            sleep 10;
-            
-            my $com = "ssh -i ~/.ec2/" . $cluster_name . ".pem root@" . $instance->dns_name . " 'ls /dev/sdf; mkdir /mnt/stats; mount /dev/sdf /mnt/stats;ls /mnt/stats'";
-            print `$com`;
-          }
-          else
-          {
-            print ".\n";
-            sleep 5;
-          }
-      }
-   }
+    my $running_instances =
+      $ec2->describe_instances({InstanceId => $instance_id});
+
+    foreach my $reservation (@$running_instances)
+    {
+        foreach my $instance ($reservation->instances_set)
+        {
+            if ($instance->instance_state->name eq 'running')
+            {
+                print "\nInstance booted, attaching EBS Volume...\n";
+                $booted = 1;
+
+                # Attach EBS Volume to Master Instance
+                my $attach_command =
+                    "ec2-attach-volume $volume_id -i "
+                  . $instance_id
+                  . " -d /dev/sdf";
+                my $attach_output = `$attach_command`;
+                print $attach_output;
+
+                print "\nWaiting 10 seconds to mount EBS Volume...\n";
+                sleep 10;
+
+                print "\nMounting EBS Volume via SSH...";
+                my $com =
+                    "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
+                  . $cluster_name
+                  . ".pem root@"
+                  . $instance->dns_name
+                  . " 'ls /dev/sdf; mkdir /mnt/stats; mount /dev/sdf /mnt/stats;ls /mnt/stats'";
+                print `$com`;
+            }
+            else
+            {
+                print ".\n";
+                sleep 5;
+            }
+        }
+    }
 }
-
-
-
 
