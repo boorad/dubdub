@@ -20,7 +20,7 @@ unless ($opts{n})
 my $cluster_name = $opts{n};
 
 # Default AMI
-my $AMI_NAME = $opts{a} || 'ami-aafa1dc3';
+my $AMI_NAME = $opts{a} || 'ami-5ccd2a35';
 
 my $cluster_size = $opts{s} || 1;
 
@@ -84,12 +84,29 @@ my $instance_id = $instance_fields[4];
 #print dump(@instance_fields);
 
 # Create EBS Volume for Data Store from Econ Snapshot
-print "\nCreating EBS Volume from stats data...\n";
-my $ebs_info =
-  `ec2-create-volume -s 230 -z us-east-1a --snapshot snap-0bdf3f62`;
-print $ebs_info;
-my @ebs_fields = split /\t/, $ebs_info;
-my $volume_id = $ebs_fields[1];
+print "\nCreating EBS Volume from stats data...\n\n";
+
+my $ebs_success = 1;
+my ($volume_id, $ebs_info, @ebs_fields);
+EBS: while($ebs_success)
+{
+    $ebs_info =
+      `ec2-create-volume -s 230 -z us-east-1a --snapshot snap-0bdf3f62`;
+      
+    # Mulligan if we get a timeout.
+    if($ebs_info =~ m/timeout/g)
+    {
+        print "\nEBS Allocation timeout, retrying.\n";
+    }
+    else
+    {
+        print "\nEBS Allocation successful...\n";
+        $ebs_success = 0;
+        print $ebs_info . "\n";
+        @ebs_fields = split /\t/, $ebs_info;
+        $volume_id = $ebs_fields[1];
+    }
+}
 
 #$vol_boot = 0;
 #while($vol_boot)
@@ -136,7 +153,7 @@ while ($booted == 0)
                 print "\nWaiting 10 seconds to mount EBS Volume...\n";
                 sleep 10;
 
-                print "\nMounting EBS Volume via SSH...";
+                print "\nMounting EBS Volume via SSH...\n";
                 my $com =
                     "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
                   . $cluster_name
@@ -144,6 +161,14 @@ while ($booted == 0)
                   . $instance->dns_name
                   . " 'ls /dev/sdf; mkdir /mnt/stats; mount /dev/sdf /mnt/stats;ls /mnt/stats'";
                 print `$com`;
+                
+                # Get ze source...
+                print "\nGrabbing source from Github...\n";
+                my $git = "ssh -o StrictHostKeyChecking=no -i ~/.ec2/" . $cluster_name
+                    . ".pem root@" . $instance->dns_name . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin'";
+                print "Command: $git\n";
+                print `$git`;
+
             }
             else
             {
