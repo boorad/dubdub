@@ -56,7 +56,7 @@ my $instance_command =
   . $cluster_name
   . ".keypair --instance-type m1.small -z us-east-1a -n 1";
 print "$instance_command\n";
-print "\nLaunching instance(s)...\n";
+print "\nLaunching master instance...\n";
 my $instance_info = `$instance_command`;
 
 print "$instance_info\n";
@@ -155,7 +155,7 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ./bin;./start.sh -n master'";
+                  . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ./bin;./start.sh -n boot'";
                 print "Command: $git\n";
                 print `$git`;
 
@@ -177,7 +177,7 @@ if ($cluster_size > 1)
 {
 
     # For to let slaves link to master
-    my $master_nodename = "master\@$master_hostname";
+    my $master_nodename = "boot\@$master_hostname";
 
     # Master already launched;
     my $num_slaves = ($cluster_size - 1);
@@ -189,7 +189,7 @@ if ($cluster_size > 1)
       . $cluster_name
       . ".keypair --instance-type m1.small -z us-east-1a -n $num_slaves";
     print "$instance_command\n";
-    print "\nLaunching instance(s)...\n";
+    print "\nLaunching slave instance(s)...\n";
     my $instance_info = `$instance_command`;
 
     print "$instance_info\n";
@@ -200,6 +200,9 @@ if ($cluster_size > 1)
     # Loop until all slave instances are taken care of
     while (1)
     {
+        # Stop when all the instances are initialized
+        exit if @initialized_instances >= $num_slaves;
+        
         my $running_instances = $ec2->describe_instances();
 
         foreach my $reservation (@$running_instances)
@@ -209,13 +212,14 @@ if ($cluster_size > 1)
 
                 # Skip instances we have already initialized
                 my $instance_name = $instance->dns_name;
+                next unless $instance_name;
                 next if grep /$instance_name/, @initialized_instances;
-
-                # Increment to get a unique worker ID for this instance
-                $worker_counter++;
 
                 if ($instance->instance_state->name eq 'running')
                 {
+
+                    # Increment to get a unique worker ID for this instance
+                    $worker_counter++;
 
                     # Get ze source... and launch ze node
                     print "\nGrabbing source from Github...\n";
@@ -224,7 +228,7 @@ if ($cluster_size > 1)
                       . $cluster_name
                       . ".pem root@"
                       . $instance->dns_name
-                      . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ./bin;./start.sh -n worker$worker_counter -m $master_hostname'";
+                      . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ./bin;./start.sh -n worker$worker_counter -m $master_nodename'";
                     print "Command: $git\n";
                     print `$git`;
 

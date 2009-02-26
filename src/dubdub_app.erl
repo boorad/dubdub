@@ -29,7 +29,8 @@ start() ->
 %% top supervisor of the tree.
 %%--------------------------------------------------------------------
 start(_Type, StartArgs) ->
-  case start_node(boot@boorad) of  %% TODO: remove hardcode
+
+  case start_node() of  %% TODO: remove hardcode
     ok ->
       case dubdub_sup:start_link(StartArgs) of
 	{ok, Pid} ->
@@ -58,12 +59,15 @@ stop(_State) ->
 %% Function: start_node(BootNode) -> ok | {error, Msg}
 %% Description: start the node as either boot or worker, based on this node's
 %%              name.  There can be only one with node name 'boot@....'
-start_node(BootNode) ->
+start_node() ->
   [Node | _T] = string:tokens(atom_to_list(node()), "@"),
   case Node of
     "boot" ->
       start_boot_node();
     _ ->
+      io:format("Did not find a boot in node name"),
+      % Grab BootNode name from command line
+      {ok, [[BootNode]]} = init:get_argument(m),
       start_worker_node(BootNode)
   end,
 
