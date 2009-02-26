@@ -36,11 +36,11 @@ do
 	 w)
              WORKER=$OPTARG
              ;;
-             
+
          m)
             MASTER=$OPTARG
             ;;
-            
+
          ?)
              usage
              exit
@@ -57,9 +57,9 @@ done
 # Feed master nodename to slaves
 if [ -z "$MASTER" ]
 then
-    echo "erl -sname $NAME -s dubdub_app -cookie cookie"
+    echo "erl -sname $NAME -s dubdub_app"
     erl -sname $NAME -s dubdub_app
 else
-    echo "erl -sname $NAME -s dubdub_app -cookie cookie -m $MASTER"
+    echo "erl -sname $NAME -s dubdub_app -m $MASTER"
     erl -sname $NAME -s dubdub_app -m $MASTER
 fi
