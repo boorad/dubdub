@@ -70,7 +70,7 @@ start_node() ->
       io:format("args: ~p~n", [init:get_arguments()]),
       case init:get_argument(m) of
 	{ok, [[BootNode]]} ->
-	  start_worker_node(BootNode);
+	  start_worker_node(list_to_atom(BootNode));
 	_ ->
 	  error
       end
