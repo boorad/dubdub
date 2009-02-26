@@ -12,12 +12,13 @@ OPTIONS:
    -b      This is a boot (or master) node
    -n      Put the name of the node here.
    -w      Start as a worker node
+   -m      Nodename of master node (for workers)
 EOF
 }
 
 BOOT=
 WORKER=
-while getopts “h:b:n:w” OPTION
+while getopts “h:b:n:w:m” OPTION
 do
      case $OPTION in
          h)
@@ -35,6 +36,11 @@ do
 	 w)
              WORKER=$OPTARG
              ;;
+             
+         m)
+            MASTER=$OPTARG
+            ;;
+            
          ?)
              usage
              exit
@@ -47,5 +53,13 @@ done
 #     usage
 #     exit 1
 #fi
-echo "erl -sname $NAME -s dubdub_app"
-erl -sname $NAME -s dubdub_app
+
+# Feed master nodename to slaves
+if [[-z $MASTER]]
+then
+    echo "erl -sname $NAME -s dubdub_app -c cookie"
+    erl -sname $NAME -s dubdub_app
+else
+    echo "erl -sname $NAME -s dubdub_app -c cookie -m $MASTER"
+    erl -sname $NAME -s dubdub_app -m $MASTER
+fi
