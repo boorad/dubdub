@@ -78,7 +78,8 @@ add_dbs(Node, Count) ->
 
 % @spec add_dbs(pid(), int(), int()) -> ok
 add_dbs(Node, Count, Delay) ->
-  add_dbs_loop(Node, Count, Delay).
+  gen_server:call(Node, {add_dbs, Count, Delay}).
+%%   add_dbs_loop(Node, Count, Delay).
 
 
 %% Function: q(Node, Type, Map, Reduce) -> {ok, Results}
@@ -142,6 +143,11 @@ handle_call({get_all_dbs}, _From, State) ->
    AllNodes = lists:flatten([State#state.dbs, State#state.lookaside]),
   {reply, AllNodes, State};
 
+%% add some db gen_servers on this node
+handle_call({add_dbs, Count, Delay}, _From, State) ->
+  add_dbs_loop(Count, Delay),
+  {reply, {added_dbs, Count}, State};
+
 %% bad message, ignored
 handle_call(_Request, _From, State) ->
   {reply, ignored, State}.
@@ -202,17 +208,17 @@ map_dbs(Node, DbFun) ->
 
 
 %% adds databases to the supplied erlang node, main_sup.
-add_dbs_loop(_Node, 0, _) ->
+add_dbs_loop(0, _) ->
   ok;
-add_dbs_loop(Node, Count, Delay) ->
-  io:format("adding ~p db's to node ~p~n", [Count, Node]),
+add_dbs_loop(Count, Delay) ->
+  io:format("adding ~p db's to node ~p~n", [Count, self()]),
   NewId = randoms:getRandomId(),
   InstanceId = string:concat("db_", NewId),
   supervisor:start_child(main_sup, {list_to_atom(NewId),
-				    {db, start_link, [Node, InstanceId]},
+				    {db, start_link, [InstanceId]},
 				    permanent,
 				    brutal_kill,
 				    worker,
 				    []}),
   timer:sleep(Delay),
-  add_dbs_loop(Node, Count - 1, Delay).
+  add_dbs_loop(Count - 1, Delay).
