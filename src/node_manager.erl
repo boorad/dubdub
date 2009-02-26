@@ -13,7 +13,7 @@
 
 %% API
 -export([start_link/0, register_node/1, next_node/1, get_all_nodes/0,
-	 get_all_db_data/0, get_all_db_counts/0, add_dbs/1]).
+	 get_all_db_data/0, get_counts/0, add_dbs/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -64,7 +64,7 @@ get_all_db_data() ->
 
 
 %% per node, and per db, returns count of # docs.
-get_all_db_counts() ->
+get_counts() ->
   map_nodes(fun(Node) ->
 	       {Node, db_manager:get_counts(Node)}
 	    end).
@@ -194,5 +194,7 @@ map_nodes(NodeFun) ->
 add_dbs_loop(0) ->
   ok;
 add_dbs_loop(Count) ->
-  db_manager:add_dbs(next_node(roundrobin), 1),
+  Node = next_node(roundrobin),
+  io:format("~p~n", [Node]),
+  db_manager:add_dbs(Node, 1),
   add_dbs_loop(Count-1).

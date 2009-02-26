@@ -18,30 +18,27 @@ EOF
 
 BOOT=
 WORKER=
-while getopts “h:b:n:w:m” OPTION
+
+while getopts “h:m:b:n:w” OPTION
 do
      case $OPTION in
-         h)
+	 h)
              usage
              exit 1
              ;;
-         b)
+	 m)
+            MASTER=$OPTARG
+            ;;
+	 b)
              BOOT=$OPTARG
              ;;
-
 	 n)
              NAME=$OPTARG
              ;;
-
 	 w)
              WORKER=$OPTARG
              ;;
-
-         m)
-            MASTER=$OPTARG
-            ;;
-
-         ?)
+	 ?)
              usage
              exit
              ;;
@@ -55,11 +52,11 @@ done
 #fi
 
 # Feed master nodename to slaves
-if [ -z "$MASTER" ]
+if test -z "$MASTER"
 then
     echo "erl -sname $NAME -s dubdub_app"
     erl -sname $NAME -s dubdub_app
 else
-    echo "erl -sname $NAME -s dubdub_app -m $MASTER"
-    erl -sname $NAME -s dubdub_app -m $MASTER
+    echo "erl -m $MASTER -sname $NAME -s dubdub_app"
+    erl -m $MASTER -sname $NAME -s dubdub_app
 fi

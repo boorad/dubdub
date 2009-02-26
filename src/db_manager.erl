@@ -205,6 +205,7 @@ map_dbs(Node, DbFun) ->
 add_dbs_loop(_Node, 0, _) ->
   ok;
 add_dbs_loop(Node, Count, Delay) ->
+  io:format("adding ~p db's to node ~p~n", [Count, Node]),
   NewId = randoms:getRandomId(),
   InstanceId = string:concat("db_", NewId),
   supervisor:start_child(main_sup, {list_to_atom(NewId),

@@ -65,21 +65,27 @@ start_node() ->
     "boot" ->
       start_boot_node();
     _ ->
-      io:format("Did not find a boot in node name"),
+      io:format("~nDid not find 'boot' in node name~n"),
       % Grab BootNode name from command line
-      {ok, [[BootNode]]} = init:get_argument(m),
-      start_worker_node(BootNode)
+      io:format("args: ~p~n", [init:get_arguments()]),
+      case init:get_argument(m) of
+	{ok, [[BootNode]]} ->
+	  start_worker_node(BootNode);
+	_ ->
+	  error
+      end
   end,
 
   %% TODO: this is called too soon after ping (if worker), and is not seeing
   %%       node_manager :(    Do we need a timeout of some kind?
+  timer:sleep(1000),
   node_manager_present().
 
 
 %% Function: start_boot_node() -> {ok, Pid}
 %% Description: starts the node_manager, which is unique to boot node
 start_boot_node() ->
-  io:format("boot node detected, starting node_manager...~n"),
+  io:format("~nboot node detected, starting node_manager...~n"),
   node_manager:start_link().
 
 
