@@ -44,57 +44,42 @@ unless (-e $ENV{HOME} . "/.ec2/$cluster_name.pem")
 }
 else
 {
-    print "Using existing keypair...\n";
+    print "\nUsing existing keypair...\n";
 }
 
 my $ec2 = Net::Amazon::EC2->new(AWSAccessKeyId  => $key_id,
                                 SecretAccessKey => $secret_key,);
 
-#$ec2->create_security_group({GroupName => $cluster_name, GroupDescription => $cluster_name});
-
-# Run master instance
-#my $instance =
-#  $ec2->run_instances(
-#                      ImageId                      => $AMI_NAME,
-#                      MinCount                     => 1,
-#                      MaxCount                     => 1,
-#                      #KeyName                      => "$cluster_name.keypair",
-#                      #SecurityGroup                => $cluster_name,
-#                      InstanceType                 => 'm1.small',
-#                      'Placement.AvailabilityZone' => 'us-east-1a',
-#                     );
-#
-#print dump($instance);
-
 my $instance_command =
     "ec2-run-instances "
   . $AMI_NAME . " -k "
   . $cluster_name
-  . ".keypair --instance-type m1.small -z us-east-1a -n $cluster_size";
+  . ".keypair --instance-type m1.small -z us-east-1a -n 1";
 print "$instance_command\n";
-print "Launching instance(s)...\n";
+print "\nLaunching instance(s)...\n";
 my $instance_info = `$instance_command`;
 
 print "$instance_info\n";
 
 # Get master instance ID
 my @instance_fields = split /\t/, $instance_info;
+
 my $instance_id = $instance_fields[4];
 
-#print dump(@instance_fields);
+print dump(@instance_fields);
 
 # Create EBS Volume for Data Store from Econ Snapshot
-print "\nCreating EBS Volume from stats data...\n\n";
+print "\nCreating EBS Volumes from stats data...\n\n";
 
 my $ebs_success = 1;
 my ($volume_id, $ebs_info, @ebs_fields);
-EBS: while($ebs_success)
+EBS: while ($ebs_success)
 {
     $ebs_info =
       `ec2-create-volume -s 230 -z us-east-1a --snapshot snap-0bdf3f62`;
-      
+
     # Mulligan if we get a timeout.
-    if($ebs_info =~ m/timeout/g)
+    if ($ebs_info =~ m/timeout/g)
     {
         print "\nEBS Allocation timeout, retrying.\n";
     }
@@ -126,6 +111,7 @@ EBS: while($ebs_success)
 
 print "\nWaiting for EC2 instance to show up to attach EBS...\n";
 my $booted = 0;
+my $master_hostname;
 
 # Wait for that instance to boot, then attach the EBS volume
 while ($booted == 0)
@@ -161,13 +147,20 @@ while ($booted == 0)
                   . $instance->dns_name
                   . " 'ls /dev/sdf; mkdir /mnt/stats; mount /dev/sdf /mnt/stats;ls /mnt/stats'";
                 print `$com`;
-                
+
                 # Get ze source...
                 print "\nGrabbing source from Github...\n";
-                my $git = "ssh -o StrictHostKeyChecking=no -i ~/.ec2/" . $cluster_name
-                    . ".pem root@" . $instance->dns_name . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin'";
+                my $git =
+                    "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
+                  . $cluster_name
+                  . ".pem root@"
+                  . $instance->dns_name
+                  . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ./bin;./start.sh -n master'";
                 print "Command: $git\n";
                 print `$git`;
+
+                # Assign master hostname for booting slaves
+                $master_hostname = $instance->dns_name;
 
             }
             else
@@ -177,5 +170,77 @@ while ($booted == 0)
             }
         }
     }
+}
+
+# Now launch slaves.
+if ($cluster_size > 1)
+{
+
+    # For to let slaves link to master
+    my $master_nodename = "master\@$master_hostname";
+
+    # Master already launched;
+    my $num_slaves = ($cluster_size - 1);
+
+    # Launch all the slaves.
+    my $instance_command =
+        "ec2-run-instances "
+      . $AMI_NAME . " -k "
+      . $cluster_name
+      . ".keypair --instance-type m1.small -z us-east-1a -n $num_slaves";
+    print "$instance_command\n";
+    print "\nLaunching instance(s)...\n";
+    my $instance_info = `$instance_command`;
+
+    print "$instance_info\n";
+
+    my @initialized_instances;
+    my $worker_counter = 0;
+
+    # Loop until all slave instances are taken care of
+    while (1)
+    {
+        my $running_instances = $ec2->describe_instances();
+
+        foreach my $reservation (@$running_instances)
+        {
+            foreach my $instance ($reservation->instances_set)
+            {
+
+                # Skip instances we have already initialized
+                my $instance_name = $instance->dns_name;
+                next if grep /$instance_name/, @initialized_instances;
+
+                # Increment to get a unique worker ID for this instance
+                $worker_counter++;
+
+                if ($instance->instance_state->name eq 'running')
+                {
+
+                    # Get ze source... and launch ze node
+                    print "\nGrabbing source from Github...\n";
+                    my $git =
+                        "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
+                      . $cluster_name
+                      . ".pem root@"
+                      . $instance->dns_name
+                      . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ./bin;./start.sh -n worker$worker_counter -m $master_hostname'";
+                    print "Command: $git\n";
+                    print `$git`;
+
+                    # Set as initialized
+                    push @initialized_instances, $instance_name;
+
+                }
+                else
+                {
+                    print ".\n";
+                    sleep 5;
+                }
+            }
+        }
+
+    }
+
 }
 
