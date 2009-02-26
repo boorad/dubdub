@@ -55,11 +55,11 @@ done
 #fi
 
 # Feed master nodename to slaves
-if [[-z $MASTER]]
+if [ -z "$MASTER" ]
 then
-    echo "erl -sname $NAME -s dubdub_app -c cookie"
+    echo "erl -sname $NAME -s dubdub_app -cookie cookie"
     erl -sname $NAME -s dubdub_app
 else
-    echo "erl -sname $NAME -s dubdub_app -c cookie -m $MASTER"
+    echo "erl -sname $NAME -s dubdub_app -cookie cookie -m $MASTER"
     erl -sname $NAME -s dubdub_app -m $MASTER
 fi
