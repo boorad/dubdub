@@ -155,7 +155,7 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ./bin;./start.sh -n boot'";
+                  . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ../bin;./start.sh -n boot'";
                 print "Command: $git\n";
                 print `$git`;
 
@@ -194,7 +194,8 @@ if ($cluster_size > 1)
 
     print "$instance_info\n";
 
-    my @initialized_instances;
+    # Start with the master in the init array
+    my @initialized_instances = ($master_hostname);
     my $worker_counter = 0;
 
     # Loop until all slave instances are taken care of
@@ -228,7 +229,7 @@ if ($cluster_size > 1)
                       . $cluster_name
                       . ".pem root@"
                       . $instance->dns_name
-                      . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ./bin;./start.sh -n worker$worker_counter -m $master_nodename'";
+                      . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ../bin;./start.sh -n worker$worker_counter -m $master_nodename'";
                     print "Command: $git\n";
                     print `$git`;
 
