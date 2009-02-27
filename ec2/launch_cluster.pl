@@ -179,9 +179,6 @@ if ($cluster_size > 1)
     # For to let slaves link to master
     my $master_nodename = "boot\@$master_hostname";
 
-    # Master already launched;
-    my $num_slaves = ($cluster_size - 1);
-
     # Launch all the slaves.
     my $instance_command =
         "ec2-run-instances "
@@ -202,7 +199,7 @@ if ($cluster_size > 1)
     while (1)
     {
         # Stop when all the instances are initialized
-        exit if @initialized_instances >= $num_slaves;
+        exit if @initialized_instances >= $cluster_size;
         
         my $running_instances = $ec2->describe_instances();
 
