@@ -155,7 +155,7 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub;pwd;git pull;ls;make;ls ./ebin;cd ./ebin;../bin/start.sh -n boot'";
+                  . " 'pwd;cd dubdub;pwd;git pull;ls;make clean;make;ls ./ebin;cd ./ebin;../bin/start.sh -n boot'";
                 print "Command: $git\n";
                 print `$git`;
 
@@ -230,7 +230,7 @@ if ($cluster_size > 1)
                       . $cluster_name
                       . ".pem root@"
                       . $instance->dns_name
-                      . " 'pwd;cd dubdub;pwd;git pull;ls;make;ls ./ebin;cd ./ebin;../bin/start.sh -n worker$worker_counter -m $master_nodename'";
+                      . " 'pwd;cd dubdub;pwd;git pull;ls;make clean;make;ls ./ebin;cd ./ebin;../bin/start.sh -n worker$worker_counter -m $master_nodename'";
                     print "Command: $git\n";
                     print `$git`;
 
