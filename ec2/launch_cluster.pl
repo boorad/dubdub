@@ -155,7 +155,7 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ../bin;./start.sh -n boot'";
+                  . " 'pwd;cd dubdub;pwd;git pull;ls;make;ls ./ebin;cd ./bin;./start.sh -n boot'";
                 print "Command: $git\n";
                 print `$git`;
 
@@ -179,6 +179,8 @@ if ($cluster_size > 1)
 
     # For to let slaves link to master
     my $master_nodename = "boot\@$master_hostname";
+    
+    print "\nMaster nodename: $master_nodename\n";
 
     # Launch all the slaves.
     my $instance_command =
@@ -227,7 +229,7 @@ if ($cluster_size > 1)
                       . $cluster_name
                       . ".pem root@"
                       . $instance->dns_name
-                      . " 'pwd;cd dubdub;pwd;git pull;ls;cd src;make;ls ../ebin;cd ../bin;./start.sh -n worker$worker_counter -m $master_nodename'";
+                      . " 'pwd;cd dubdub;pwd;git pull;ls;make;ls ./ebin;cd ./bin;./start.sh -n worker$worker_counter -m $master_nodename'";
                     print "Command: $git\n";
                     print `$git`;
 
