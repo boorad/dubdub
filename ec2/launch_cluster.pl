@@ -175,6 +175,7 @@ while ($booted == 0)
 # Now launch slaves.
 if ($cluster_size > 1)
 {
+    my $num_slaves = ($cluster_size - 1);
 
     # For to let slaves link to master
     my $master_nodename = "boot\@$master_hostname";
