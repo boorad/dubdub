@@ -75,9 +75,6 @@ start_node() ->
 	  error
       end
   end,
-
-  %% TODO: this is called too soon after ping (if worker), and is not seeing
-  %%       node_manager :(    Do we need a timeout of some kind?
   timer:sleep(1000),
   node_manager_present().
 

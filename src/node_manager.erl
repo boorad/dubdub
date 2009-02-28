@@ -195,6 +195,6 @@ add_dbs_loop(0) ->
   ok;
 add_dbs_loop(Count) ->
   Node = next_node(roundrobin),
-  io:format("~p~n", [Node]),
-  db_manager:add_dbs(Node, 1),
+  %% io:format("~p~n", [Node]),
+  db_manager:add_db(Node),
   add_dbs_loop(Count-1).
