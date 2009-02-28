@@ -167,7 +167,7 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub;pwd;make clean;make;cd ebin;../bin/start.sh -n boot &;echo \"Boot node booted!\";'";
+                  . " 'pwd;cd dubdub;pwd;make clean;make;cd ebin;../bin/start.sh -n boot &2>1 >/dev/null &'";
 
                 print "\nCommand: $boot\n";
                 print `$boot`;
@@ -231,6 +231,7 @@ if ($cluster_size > 1)
 
                 if ($instance->instance_state->name eq 'running')
                 {
+                    print "\nInstance state: " . $instance->instance_state->name . "\n";
                     sleep 5;
                     
                     # Increment to get a unique worker ID for this instance
@@ -249,13 +250,13 @@ if ($cluster_size > 1)
                     print `$git`;
                     
                     # Launch ze server
-                    print "\nActivating boot node...\n";
+                    print "\nActivating slave node...\n";
                     my $boot =
                         "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
                       . $cluster_name
                       . ".pem root@"
                       . $instance->dns_name
-                      . " 'pwd;cd dubdub;pwd;git pull;ls;make clean;make;ls ./ebin;cd ./ebin;../bin/start.sh -n worker$worker_counter -m $master_nodename &'";
+                      . " 'pwd;cd dubdub;pwd;git pull;ls;make clean;make;ls ./ebin;cd ./ebin;../bin/start.sh -n worker$worker_counter -m $master_nodename  &2>1 >/dev/null &'";
 
                     print "\nCommand: $boot\n";
                     print `$boot`;
