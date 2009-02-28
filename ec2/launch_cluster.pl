@@ -9,6 +9,9 @@ use Data::Dump qw/dump/;
 use Net::Amazon::EC2;
 use Data::Dumper;
 
+# Print shite immediately
+$|=1;
+
 my %opts;
 getopts('n:a:s:k:i:', \%opts);    # options as above. Values in %opts
 
@@ -213,11 +216,8 @@ if ($cluster_size > 1)
     my $worker_counter = 0;
 
     # Loop until all slave instances are taken care of
-    while (1)
-    {
-        # Stop when all the instances are initialized
-        exit if @initialized_instances >= $cluster_size;
-        
+    while (@initialized_instances < $cluster_size)
+    {        
         my $running_instances = $ec2->describe_instances();
 
         foreach my $reservation (@$running_instances)
@@ -233,7 +233,7 @@ if ($cluster_size > 1)
                 if ($instance->instance_state->name eq 'running')
                 {
                     print "\nInstance state: " . $instance->instance_state->name . "\n";
-                    sleep 20;
+                    sleep 30;
                     
                     # Increment to get a unique worker ID for this instance
                     $worker_counter++;
@@ -260,7 +260,7 @@ if ($cluster_size > 1)
                       . " 'pwd;cd dubdub;pwd;git pull;ls;make clean;make;ls ./ebin;cd ./ebin;../bin/start.sh -n worker$worker_counter -m $master_nodename'";
 
                     print "\nCommand: $boot\n";
-                    print `$boot`;
+                    system($boot);
 
                     # Set as initialized
                     push @initialized_instances, $instance_name;
