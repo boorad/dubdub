@@ -130,7 +130,7 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'ls /dev/sdf; mkdir /mnt/stats; mount /dev/sdf /mnt/stats;ls /mnt/stats'";
+                  . " 'shutdown -h +50 >/dev/null &;ls /dev/sdf; mkdir /mnt/stats; mount /dev/sdf /mnt/stats;ls /mnt/stats'";
                 print `$com`;
 
                 # Get ze source...
@@ -152,7 +152,7 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub;pwd;make clean;make'";
+                  . " 'pwd;cd dubdub/src;pwd;make clean;make'";
 
                 print "\nCommand: $boot\n";
                 system($boot);
@@ -160,7 +160,8 @@ while ($booted == 0)
                 # Assign master hostname for booting slaves
                 $master_hostname = $instance->private_dns_name;
                 
-                print "\n\nMaster hostname for slaves will be: $master_hostname\n\nYou will soon be in erl console, then try something like ./launch_slaves -n $cluster_name -s 5 -m $master_hostname";
+                print "\n\nMaster hostname for slaves will be: $master_hostname\n\nYou will soon be in erl console, then try something like ./launch_slaves -n $cluster_name -s 5 -m $master_hostname --user-data '#!bin/sh
+  shutdown -h +50 >/dev/null &' ";
 
                 # Launch ze server
                 print "\nActivating boot node...\n";

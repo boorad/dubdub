@@ -7,7 +7,6 @@ use warnings;
 use Getopt::Std;
 use Data::Dump qw/dump/;
 use Net::Amazon::EC2;
-use Data::Dumper;
 
 # Print shite immediately
 $| = 1;
@@ -23,9 +22,9 @@ unless ($opts{n})
 unless ($opts{m})
 {
     die "Master name (-m) required!";
-}   
+}
 
-my $cluster_name = $opts{n};
+my $cluster_name    = $opts{n};
 my $master_hostname = $opts{m};
 my $master_nodename = "boot\@$master_hostname";
 
@@ -63,7 +62,8 @@ my $instance_command =
     "ec2-run-instances "
   . $AMI_NAME . " -k "
   . $cluster_name
-  . ".keypair --instance-type m1.small -z us-east-1a -n $num_slaves";
+  . ".keypair --instance-type m1.small -z us-east-1a -n $num_slaves --user-data '#!bin/sh
+  shutdown -h +50 >/dev/null &' ";
 print "$instance_command\n";
 print "\nLaunching slave instance(s)...\n";
 my $instance_info = `$instance_command`;
@@ -81,7 +81,7 @@ sleep 30;
 while (@initialized_instances < ($num_slaves + 1))
 {
     print ".";
-    
+
     my $running_instances = $ec2->describe_instances();
 
     foreach my $reservation (@$running_instances)
@@ -95,13 +95,14 @@ while (@initialized_instances < ($num_slaves + 1))
 
             next unless $internal_name;
             next if grep /$internal_name/, @initialized_instances;
-            
+
             print "Instance name: $instance_name\n";
 
             if ($instance->instance_state->name eq 'running')
             {
                 print "\nInstance $internal_name / $instance_name state: "
-                  . $instance->instance_state->name . " we will sleep 30 while it boots\n";
+                  . $instance->instance_state->name
+                  . " we will sleep 30 while it boots\n";
 
                 # Increment to get a unique worker ID for this instance
                 $worker_counter++;
@@ -113,7 +114,7 @@ while (@initialized_instances < ($num_slaves + 1))
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub;pwd;git pull;echo \"We pulled git!\n\"'";
+                  . " 'shutdown -h +50 >/dev/null &;pwd;cd dubdub;pwd;git pull;echo \"We pulled git!\n\"'";
 
                 print "\nCommand: $git\n";
                 print `$git`;
@@ -141,7 +142,5 @@ while (@initialized_instances < ($num_slaves + 1))
             }
         }
     }
-
 }
-
 
