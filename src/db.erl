@@ -10,12 +10,12 @@
 
 -behaviour(gen_server).
 
-%% -include_lib("eunit/include/eunit.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 -define(SERVER, ?MODULE).
 
 %% API
--export([start_link/2, insert/2, get_all/1, get_docs_limit/2, get_count/1, q/4,
+-export([start_link/1, insert/2, get_all/1, get_docs_limit/2, get_count/1, q/4,
 	 truncate/1]).
 
 %% gen_server callbacks
@@ -29,15 +29,8 @@
 
 %% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
 %% Description: Starts the server
-start_link(Node, InstanceId) ->
-  case gen_server:start_link(?SERVER, [InstanceId], []) of
-    {ok, Pid} ->
-      db_manager:register_db(Node, Pid),
-      {ok, Pid};
-    Msg ->
-      io:format("~p~n", [Msg]),
-      {error, Msg}
-  end.
+start_link(InstanceId) ->
+  gen_server:start_link(?SERVER, [InstanceId], []).
 
 
 %% insert a document value into a given node
@@ -94,7 +87,7 @@ truncate(Db) ->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init([InstanceId]) ->
-  %%process_flag(trap_exit, true),
+  process_flag(trap_exit, true),
   io:format("starting DB ~p...~n", [InstanceId]),
   {ok, []}.
 

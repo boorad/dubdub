@@ -19,7 +19,7 @@
 
 %% API
 -export([start_link/0, register_db/2, next_db/2, get_all_dbs/1,
-	 get_all_db_data/1, get_counts/1, add_dbs/2, add_dbs/3, q/4]).
+	 get_all_db_data/1, get_counts/1, add_db/1, q/4]).
 
 -define(SERVER, ?MODULE).
 
@@ -41,9 +41,9 @@ start_link() ->
   gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 
-%% register_db(Node, DBPid) -> ok | barfs
-register_db(Node, DBPid) ->
-  gen_server:call(Node, {register_db, DBPid}).
+%% register_db(Node, DbPid) -> ok | barfs
+register_db(Node, DbPid) ->
+  gen_server:call(Node, {register_db, DbPid}).
 
 
 %% get the next db on this node, depending on Method passed in
@@ -68,18 +68,21 @@ get_counts(Node) ->
   map_dbs(Node, fun db:get_count/1).
 
 
-%% Function: add_dbs(pid(), int()) -> ok
-%% Description: add new dbs to a node
+%% Function: add_db(pid()) -> ok
+%% Description: add a new db to a node
 %%  Node is the db_manager on the erlang node for the new db
-% @doc add new dbs on the local node
-% @spec add_dbs(pid(), int()) -> ok
-add_dbs(Node, Count) ->
-  add_dbs(Node, Count, 0).
-
-% @spec add_dbs(pid(), int(), int()) -> ok
-add_dbs(Node, Count, Delay) ->
-  gen_server:call(Node, {add_dbs, Count, Delay}).
-%%   add_dbs_loop(Node, Count, Delay).
+% @doc add a new db on the local node
+% @spec add_db(pid()) -> ok
+add_db(Node) ->
+  {add_db, Result} = gen_server:call(Node, {add_db}),
+  case Result of
+    {ok, DbPid} ->
+      register_db(Node, DbPid);
+    {error, Error} ->
+      io:format("~nError adding db: ~p~n", [Error]);
+    _ ->
+      {error, undetermined_error, db_manager, add_db}
+  end.
 
 
 %% Function: q(Node, Type, Map, Reduce) -> {ok, Results}
@@ -121,7 +124,6 @@ handle_call({register_db, WorkerPid}, _From, State) ->
   link(WorkerPid),
   {reply, ok, State#state{dbs=[WorkerPid|State#state.dbs]}};
 
-
 %% get the next db in this node
 %%  * round robin implementation *
 handle_call({next_db, roundrobin}, _From, State) when
@@ -131,12 +133,14 @@ handle_call({next_db, roundrobin}, _From, State) when
 handle_call({next_db, roundrobin}, _From, State) when
     length(State#state.dbs) > 0 ->
   [NextDB|T] = State#state.dbs,
-  {reply, NextDB, State#state{dbs=T, lookaside=[NextDB|State#state.lookaside]}};
+  {reply, NextDB, State#state{dbs=T,
+			      lookaside=[NextDB|State#state.lookaside]}};
 
 handle_call({next_db, roundrobin}, _From, State) ->
   NewState = State#state{dbs=State#state.lookaside, lookaside=[]},
   [NextDB|T] = NewState#state.dbs,
-  {reply, NextDB, NewState#state{dbs=T, lookaside=[NextDB|NewState#state.lookaside]}};
+  {reply, NextDB, NewState#state{dbs=T,
+				 lookaside=[NextDB|NewState#state.lookaside]}};
 
 %% get all of the db pids on this node
 handle_call({get_all_dbs}, _From, State) ->
@@ -144,9 +148,17 @@ handle_call({get_all_dbs}, _From, State) ->
   {reply, AllNodes, State};
 
 %% add some db gen_servers on this node
-handle_call({add_dbs, Count, Delay}, _From, State) ->
-  add_dbs_loop(Count, Delay),
-  {reply, {added_dbs, Count}, State};
+handle_call({add_db}, _From, State) ->
+  NewId = randoms:getRandomId(),
+  InstanceId = string:concat("db_", NewId),
+  Result = supervisor:start_child(main_sup, {list_to_atom(NewId),
+					     {db, start_link,
+					      [InstanceId]},
+					     permanent,
+					     brutal_kill,
+					     worker,
+					     []}),
+  {reply, {add_db, Result}, State};
 
 %% bad message, ignored
 handle_call(_Request, _From, State) ->
@@ -205,20 +217,3 @@ filter_db(DBPid, DBs) ->
 map_dbs(Node, DbFun) ->
   DBs = get_all_dbs(Node),
   lists:map(DbFun, DBs).
-
-
-%% adds databases to the supplied erlang node, main_sup.
-add_dbs_loop(0, _) ->
-  ok;
-add_dbs_loop(Count, Delay) ->
-  io:format("adding ~p db's to node ~p~n", [Count, self()]),
-  NewId = randoms:getRandomId(),
-  InstanceId = string:concat("db_", NewId),
-  supervisor:start_child(main_sup, {list_to_atom(NewId),
-				    {db, start_link, [InstanceId]},
-				    permanent,
-				    brutal_kill,
-				    worker,
-				    []}),
-  timer:sleep(Delay),
-  add_dbs_loop(Count - 1, Delay).
