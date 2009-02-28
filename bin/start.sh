@@ -19,7 +19,7 @@ EOF
 BOOT=
 WORKER=
 
-while getopts “h:m:b:n:w” OPTION
+while getopts “h:m:b:n:dw” OPTION
 do
      case $OPTION in
 	 h)
@@ -35,8 +35,12 @@ do
 	 n)
              NAME=$OPTARG
              ;;
+             
 	 w)
              WORKER=$OPTARG
+             ;;
+         d)
+             DETACHED="-detached"
              ;;
 	 ?)
              usage
@@ -54,9 +58,9 @@ done
 # Feed master nodename to slaves
 if test -z "$MASTER"
 then
-    echo "erl -name $NAME -s dubdub_app -setcookie mysecretcookie -detached"
-    erl -name $NAME -s dubdub_app -setcookie mysecretcookie -detached 
+    echo "erl -name $NAME -s dubdub_app -setcookie mysecretcookie $DETACHED"
+    erl -name $NAME -s dubdub_app -setcookie mysecretcookie $DETACHED
 else
-    echo "erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie -detached"
-    erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie -detached
+    echo "erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie $DETACHED"
+    erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie $DETACHED
 fi

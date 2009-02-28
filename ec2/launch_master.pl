@@ -13,7 +13,7 @@ use Data::Dumper;
 $|=1;
 
 my %opts;
-getopts('n:a:s:k:i:', \%opts);    # options as above. Values in %opts
+getopts('n:a:k:i:', \%opts);    # options as above. Values in %opts
 
 unless ($opts{n})
 {
@@ -24,8 +24,6 @@ my $cluster_name = $opts{n};
 
 # Default AMI
 my $AMI_NAME = $opts{a} || 'ami-5ccd2a35';
-
-my $cluster_size = $opts{s} || 1;
 
 my $key_id     = $opts{i} || $ENV{AWS_ACCESS_KEY_ID};
 my $secret_key = $opts{k} || $ENV{AWS_SECRET_ACCESS_KEY};
@@ -96,22 +94,6 @@ EBS: while ($ebs_success)
     }
 }
 
-#$vol_boot = 0;
-#while($vol_boot)
-#{
-#  my $foo = `ec2-describe-volumes|grep $volume_id`;
-#  my @values = split(/\t/, $foo);
-#  if($values[5] eq 'available')
-#  {
-#    $vol_boot = 1;
-#    print "EBS available\n";
-#  }
-#  else
-#  {
-#    print ".\n";
-#  }
-#}
-
 print "\nWaiting for EC2 instance to show up to attach EBS...\n";
 my $booted = 0;
 my $master_hostname;
@@ -148,7 +130,7 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'ls /dev/sdf; mkdir /mnt/stats; mount /dev/sdf /mnt/stats;ls /mnt/stats'";
+                  . " 'shutdown -h +50 >/dev/null &;ls /dev/sdf; mkdir /mnt/stats; mount /dev/sdf /mnt/stats;ls /mnt/stats'";
                 print `$com`;
 
                 # Get ze source...
@@ -170,15 +152,29 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub;pwd;make clean;make;cd ebin;../bin/start.sh -n boot'";
+                  . " 'pwd;cd dubdub/src;pwd;make clean;make'";
 
                 print "\nCommand: $boot\n";
                 system($boot);
-                sleep 20;
-
+                
                 # Assign master hostname for booting slaves
-                $master_hostname = $instance->dns_name;
+                $master_hostname = $instance->private_dns_name;
+                
+                print "\n\nMaster hostname for slaves will be: $master_hostname\n\nYou will soon be in erl console, then try something like ./launch_slaves -n $cluster_name -s 5 -m $master_hostname --user-data '#!bin/sh
+  shutdown -h +50 >/dev/null &' ";
 
+                # Launch ze server
+                print "\nActivating boot node...\n";
+                my $runage =
+                    "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
+                  . $cluster_name
+                  . ".pem root@"
+                  . $instance->dns_name
+                  . " 'cd dubdub/ebin;../bin/start.sh -n boot'";
+
+                print "\nCommand: $runage\n";
+                system($runage);
+                
             }
             else
             {
@@ -188,93 +184,3 @@ while ($booted == 0)
         }
     }
 }
-
-# Now launch slaves.
-if ($cluster_size > 1)
-{
-    my $num_slaves = ($cluster_size - 1);
-
-    # For to let slaves link to master
-    my $master_nodename = "boot\@$master_hostname";
-    
-    print "\nMaster nodename: $master_nodename\n";
-
-    # Launch all the slaves.
-    my $instance_command =
-        "ec2-run-instances "
-      . $AMI_NAME . " -k "
-      . $cluster_name
-      . ".keypair --instance-type m1.small -z us-east-1a -n $num_slaves";
-    print "$instance_command\n";
-    print "\nLaunching slave instance(s)...\n";
-    my $instance_info = `$instance_command`;
-
-    print "$instance_info\n";
-
-    # Start with the master in the init array
-    my @initialized_instances = ($master_hostname);
-    my $worker_counter = 0;
-
-    # Loop until all slave instances are taken care of
-    while (@initialized_instances < $cluster_size)
-    {        
-        my $running_instances = $ec2->describe_instances();
-
-        foreach my $reservation (@$running_instances)
-        {
-            foreach my $instance ($reservation->instances_set)
-            {
-
-                # Skip instances we have already initialized
-                my $instance_name = $instance->dns_name;
-                next unless $instance_name;
-                next if grep /$instance_name/, @initialized_instances;
-
-                if ($instance->instance_state->name eq 'running')
-                {
-                    print "\nInstance state: " . $instance->instance_state->name . "\n";
-                    sleep 30;
-                    
-                    # Increment to get a unique worker ID for this instance
-                    $worker_counter++;
-                    
-                    # Get ze source...
-                    print "\nGrabbing source from Github...\n";
-                    my $git =
-                        "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
-                      . $cluster_name
-                      . ".pem root@"
-                      . $instance->dns_name
-                      . " 'pwd;cd dubdub;pwd;git pull;echo \"We pulled git!\n\"'";
-                      
-                    print "\nCommand: $git\n";
-                    print `$git`;
-                    
-                    # Launch ze server
-                    print "\nActivating slave node...\n";
-                    my $boot =
-                        "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
-                      . $cluster_name
-                      . ".pem root@"
-                      . $instance->dns_name
-                      . " 'pwd;cd dubdub;pwd;git pull;ls;make clean;make;ls ./ebin;cd ./ebin;../bin/start.sh -n worker$worker_counter -m $master_nodename'";
-
-                    print "\nCommand: $boot\n";
-                    system($boot);
-
-                    # Set as initialized
-                    push @initialized_instances, $instance_name;
-
-                }
-                else
-                {
-                    print ".\n";
-                    sleep 5;
-                }
-            }
-        }
-
-    }
-
-}
-
