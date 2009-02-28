@@ -233,7 +233,7 @@ if ($cluster_size > 1)
                 if ($instance->instance_state->name eq 'running')
                 {
                     print "\nInstance state: " . $instance->instance_state->name . "\n";
-                    sleep 5;
+                    sleep 20;
                     
                     # Increment to get a unique worker ID for this instance
                     $worker_counter++;
