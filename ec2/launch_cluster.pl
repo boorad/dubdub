@@ -155,9 +155,22 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub;pwd;git pull;ls;make clean;make;ls ./ebin;cd ./ebin;../bin/start.sh -n boot'";
+                  . " 'pwd;cd dubdub;pwd;git pull;echo \"We pulled git!\n\"'";
+                  
                 print "Command: $git\n";
                 print `$git`;
+                
+                # Launch ze server
+                print "\nActivating boot node...\n";
+                my $boot =
+                    "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
+                  . $cluster_name
+                  . ".pem root@"
+                  . $instance->dns_name
+                  . " 'pwd;cd dubdub;pwd;make clean;make;cd ebin;../bin/start.sh -n boot &;echo \"Boot node booted!\";'";
+
+                print "\nCommand: $boot\n";
+                print `$boot`;
 
                 # Assign master hostname for booting slaves
                 $master_hostname = $instance->dns_name;
@@ -222,17 +235,30 @@ if ($cluster_size > 1)
                     
                     # Increment to get a unique worker ID for this instance
                     $worker_counter++;
-
-                    # Get ze source... and launch ze node
+                    
+                    # Get ze source...
                     print "\nGrabbing source from Github...\n";
                     my $git =
                         "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
                       . $cluster_name
                       . ".pem root@"
                       . $instance->dns_name
-                      . " 'pwd;cd dubdub;pwd;git pull;ls;make clean;make;ls ./ebin;cd ./ebin;../bin/start.sh -n worker$worker_counter -m $master_nodename'";
-                    print "Command: $git\n";
+                      . " 'pwd;cd dubdub;pwd;git pull;echo \"We pulled git!\n\"'";
+                      
+                    print "\nCommand: $git\n";
                     print `$git`;
+                    
+                    # Launch ze server
+                    print "\nActivating boot node...\n";
+                    my $boot =
+                        "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
+                      . $cluster_name
+                      . ".pem root@"
+                      . $instance->dns_name
+                      . " 'pwd;cd dubdub;pwd;git pull;ls;make clean;make;ls ./ebin;cd ./ebin;../bin/start.sh -n worker$worker_counter -m $master_nodename &'";
+
+                    print "\nCommand: $boot\n";
+                    print `$boot`;
 
                     # Set as initialized
                     push @initialized_instances, $instance_name;

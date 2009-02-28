@@ -54,9 +54,9 @@ done
 # Feed master nodename to slaves
 if test -z "$MASTER"
 then
-    echo "erl -name $NAME -s dubdub_app -setcookie mysecretcookie"
-    erl -name $NAME -s dubdub_app -setcookie mysecretcookie
+    echo "erl -name $NAME -s dubdub_app -setcookie mysecretcookie -noshell"
+    erl -name $NAME -s dubdub_app -setcookie mysecretcookie -noshell &
 else
-    echo "erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie"
-    erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie
+    echo "erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie -noshell"
+    erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie -noshell &
 fi
