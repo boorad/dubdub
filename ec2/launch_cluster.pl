@@ -170,7 +170,8 @@ while ($booted == 0)
                   . " 'pwd;cd dubdub;pwd;make clean;make;cd ebin;../bin/start.sh -n boot &2>1 >/dev/null &'";
 
                 print "\nCommand: $boot\n";
-                print `$boot`;
+                system($boot);
+                sleep 20;
 
                 # Assign master hostname for booting slaves
                 $master_hostname = $instance->dns_name;
