@@ -12,12 +12,12 @@ register_test_() ->
     [
      %% start a db manager and do some tests
      fun() ->
-	 {ok, Pid} = db_manager:start_link(),
+	 {ok, Node} = db_manager:start_link(),
 	 %% no dbs at first
-	 ?assertMatch(empty_db_manager, db_manager:next_db(Pid, roundrobin)),
+	 ?assertMatch(empty_db_manager, db_manager:next_db(Node, roundrobin)),
 	 %% add a db
-	 db:start_link(Pid, "1234"),
-	 ?assertEqual(1, length(db_manager:get_all_dbs(Pid)))
+	 {ok, DbPid} = db:start_link("1234"),
+	 db_manager:register_db(Node, DbPid),
+	 ?assertEqual(1, length(db_manager:get_all_dbs(Node)))
      end
-
     ]}].

@@ -67,7 +67,6 @@ start_node() ->
     _ ->
       io:format("~nDid not find 'boot' in node name~n"),
       % Grab BootNode name from command line
-      io:format("args: ~p~n", [init:get_arguments()]),
       case init:get_argument(m) of
 	{ok, [[BootNode]]} ->
 	  start_worker_node(list_to_atom(BootNode));
