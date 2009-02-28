@@ -55,8 +55,8 @@ done
 if test -z "$MASTER"
 then
     echo "erl -name $NAME -s dubdub_app -setcookie mysecretcookie -noshell -detached"
-    erl -name $NAME -s dubdub_app -setcookie mysecretcookie -noshell -detached 
+    erl -name $NAME -s dubdub_app -setcookie mysecretcookie -detached 
 else
     echo "erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie -noshell -detached"
-    erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie -noshell -detached
+    erl -m $MASTER -name $NAME -s dubdub_app -setcookie mysecretcookie -detached
 fi
