@@ -160,7 +160,7 @@ while ($booted == 0)
                 # Assign master hostname for booting slaves
                 $master_hostname = $instance->private_dns_name;
                 
-                print "\n\nMaster hostname for slaves will be: boot\@$master_hostname\n\nYou will soon be in erl console, then try something like ./launch_slaves -n 2 -m boot\@$master_hostname";
+                print "\n\nMaster hostname for slaves will be: $master_hostname\n\nYou will soon be in erl console, then try something like ./launch_slaves -n $cluster_name -s 5 -m $master_hostname";
 
                 # Launch ze server
                 print "\nActivating boot node...\n";
