@@ -123,6 +123,17 @@ while ($booted == 0)
 
                 print "\nWaiting 10 seconds to mount EBS Volume...\n";
                 sleep 10;
+                
+                # First things first, set this thing to die in 50 minutes to save cash
+                print "\nConfiguring Master to die in 50 minutes...\n";
+                my $shut =
+                    "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
+                  . $cluster_name
+                  . ".pem root@"
+                  . $instance->dns_name
+                  . " 'shutdown -h +50 >/dev/null &'";
+                print "\nCommand: $shut\n";
+                print `$shut`;
 
                 print "\nMounting EBS Volume via SSH...\n";
                 my $com =
@@ -130,7 +141,7 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'shutdown -h +50 >/dev/null &;ls /dev/sdf; mkdir /mnt/stats; mount /dev/sdf /mnt/stats;ls /mnt/stats'";
+                  . " 'ls /dev/sdf; mkdir /mnt/stats; mount /dev/sdf /mnt/stats;ls /mnt/stats'";
                 print `$com`;
 
                 # Get ze source...
@@ -160,8 +171,7 @@ while ($booted == 0)
                 # Assign master hostname for booting slaves
                 $master_hostname = $instance->private_dns_name;
                 
-                print "\n\nMaster hostname for slaves will be: $master_hostname\n\nYou will soon be in erl console, then try something like ./launch_slaves -n $cluster_name -s 5 -m $master_hostname --user-data '#!bin/sh
-  shutdown -h +50 >/dev/null &' ";
+                print "\n\nMaster hostname for slaves will be: $master_hostname\n\nYou will soon be in erl console, then try something like ./launch_slaves -n $cluster_name -s 5 -m $master_hostname";
 
                 # Launch ze server
                 print "\nActivating boot node...\n";

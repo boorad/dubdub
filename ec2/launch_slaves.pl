@@ -21,7 +21,7 @@ unless ($opts{n})
 
 unless ($opts{m})
 {
-    die "Master name (-m) required!";
+    die "Master hostname (-m) required!";
 }
 
 my $cluster_name    = $opts{n};
@@ -53,6 +53,30 @@ else
 my $ec2 = Net::Amazon::EC2->new(AWSAccessKeyId  => $key_id,
                                 SecretAccessKey => $secret_key,);
 
+# Note existing instances so we skip them
+my @initialized_instances;
+
+# Initialize instances array with pre-existing instances
+my $running_instances = $ec2->describe_instances();
+
+foreach my $reservation (@$running_instances)
+{
+    foreach my $instance ($reservation->instances_set)
+    {
+
+        # Set as initialized if so
+        if(defined($instance->private_dns_name))
+        {
+            push @initialized_instances, $instance->private_dns_name;
+        }
+    }
+}
+
+print "\nExisting EC2 Instances: \n";
+print dump(@initialized_instances) . "\n";
+
+my $num_init_instances = @initialized_instances;
+
 # Now launch slaves.
 
 print "\nMaster nodename: $master_nodename\n";
@@ -62,23 +86,21 @@ my $instance_command =
     "ec2-run-instances "
   . $AMI_NAME . " -k "
   . $cluster_name
-  . ".keypair --instance-type m1.small -z us-east-1a -n $num_slaves --user-data '#!bin/sh
-  shutdown -h +50 >/dev/null &' ";
+  . ".keypair --instance-type m1.small -z us-east-1a -n $num_slaves";
 print "$instance_command\n";
 print "\nLaunching slave instance(s)...\n";
 my $instance_info = `$instance_command`;
 
 print "$instance_info\n";
 
-# Start with the master in the init array
-my @initialized_instances = ($master_hostname);
-my $worker_counter        = 0;
+# Counter for assigning worker numbers to slave node names, i.e. worker1, worker2, etc.
+my $worker_counter = 0;
 
-print "Sleep 30 while our instances boot...";
-sleep 30;
+# Flag to sleep 30 seconds before booting the first instance, giving it a chance to boot reliably
+my $first_instance = 1;
 
 # Loop until all slave instances are taken care of
-while (@initialized_instances < ($num_slaves + 1))
+while (@initialized_instances < ($num_slaves + $num_init_instances))
 {
     print ".";
 
@@ -93,19 +115,42 @@ while (@initialized_instances < ($num_slaves + 1))
             my $instance_name = $instance->dns_name;
             my $internal_name = $instance->private_dns_name;
 
-            next unless $internal_name;
+            next unless $instance->can('private_dns_name') and defined($instance->private_dns_name) and $instance->private_dns_name;
             next if grep /$internal_name/, @initialized_instances;
 
-            print "Instance name: $instance_name\n";
+            print "Instance name: $instance_name / $internal_name\n";
 
             if ($instance->instance_state->name eq 'running')
             {
-                print "\nInstance $internal_name / $instance_name state: "
-                  . $instance->instance_state->name
-                  . " we will sleep 30 while it boots\n";
+                if($first_instance)
+                {
+                    print "\nInstance $internal_name / $instance_name state: "
+                      . $instance->instance_state->name
+                      . "we will sleep 30 seconds while it boots...\n";
+    
+                    # None of the other instances need to sleep, they wil be well booted.
+                    $first_instance = 0;
+                    sleep 30;
+                }
+                else
+                {
+                    print "\nInstance $internal_name / $instance_name state: "
+                      . $instance->instance_state->name . "\n";
+                }
 
                 # Increment to get a unique worker ID for this instance
                 $worker_counter++;
+
+                # First things first, set this thing to die in 50 minutes to save cash
+                print "\nConfiguring Slave to die in 50 minutes...\n";
+                my $shut =
+                    "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
+                  . $cluster_name
+                  . ".pem root@"
+                  . $instance->dns_name
+                  . " 'shutdown -h +50 >/dev/null &'";
+                print "\nCommand: $shut\n";
+                print `$shut`;
 
                 # Get ze source...
                 print "\nGrabbing source from Github...\n";
@@ -114,7 +159,7 @@ while (@initialized_instances < ($num_slaves + 1))
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'shutdown -h +50 >/dev/null &;pwd;cd dubdub;pwd;git pull;echo \"We pulled git!\n\"'";
+                  . " 'pwd;cd dubdub;pwd;git pull;echo \"We pulled git!\n\"'";
 
                 print "\nCommand: $git\n";
                 print `$git`;
@@ -126,7 +171,7 @@ while (@initialized_instances < ($num_slaves + 1))
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub;pwd;git pull;ls;make clean;make;ls ./ebin;cd ./ebin;../bin/start.sh -n worker$worker_counter -d -m $master_nodename'";
+                  . " 'pwd;cd dubdub/src;ls;make;ls ../ebin;cd ../ebin;../bin/start.sh -n worker$worker_counter -d -m $master_nodename'";
 
                 print "\nCommand: $boot\n";
                 system($boot);
