@@ -51,8 +51,12 @@ load() ->
 	    dataloader:insert(Term)
 	end,
   glogger:start_link(?DAT_FILE),
-  glogger:upread(Fun),
-  glogger:stop().
+  {Time, Result} = timer:tc(glogger, upread, [Fun]),
+  glogger:stop(),
+  {ok, Docs} = Result,
+  io:format("Time (msec): ~p~n", [Time/1000]),
+  io:format("Docs       : ~p~n", [Docs]),
+  io:format("docs/sec   : ~p~n", [Docs/(Time/1000/1000)]).
 
 
 %%
@@ -146,7 +150,7 @@ get_month_store_query() ->
     "  AND gmonth-96 between 1 and 12 "
     "GROUP BY gmonth, gstore "
     "ORDER BY gstore, gmonth "
-    "LIMIT 1000;".  % for dev
+    .%"LIMIT 1000;".  % for dev
 
 
 get_singledoc_query(M, S) ->
@@ -159,20 +163,24 @@ get_singledoc_query(M, S) ->
 
 
 parse_singledoc(RS) ->
-  {_,[{_,Data}]} = RS,
-  case Data of
-    [] ->
-      null;
-    _ ->
-      Raw = [ {K, val(V)} || {K,V} <- Data ],
-      case Raw of
-	[] ->
-	  null;
-	_ ->
-	  format_singledoc(?OUTPUT_FORMAT, Raw)
-      end
+  try
+    {_,[{_,Data}]} = RS,
+    case Data of
+      [] ->
+	null;
+      _ ->
+	Raw = [ {K, val(V)} || {K,V} <- Data ],
+	case Raw of
+	  [] ->
+	    null;
+	  _ ->
+	    format_singledoc(?OUTPUT_FORMAT, Raw)
+	end
+    end
+  catch
+    _:_ ->
+      null
   end.
-
 
 format_singledoc(json, Raw) ->
   {obj, Raw};
@@ -190,52 +198,61 @@ get_storeinfo_query(S) ->
 
 
 parse_storeinfo(json, RS) ->
-  {_,[{_,Data}]} = RS,
-  [StoreInfo|_] = Data,
-  {Store, SiteCity, SiteState, SiteZip, Exterior, Interior, Restroom,
-   Breakfast, Sunday, AdiName, Adi, Ownership, Playground, SeatCount,
-   ParkingSpaces} = StoreInfo,
-  {obj, [
-   {"store_num", val(Store)},
-   {"city", val(SiteCity)},
-   {"state", val(SiteState)},
-   {"zip", val(SiteZip)},
-   {"exterior", val(Exterior == "T")},
-   {"interior", val(Interior == "T")},
-   {"restroom", val(Restroom == "T")},
-   {"breakfast", val(Breakfast == "T")},
-   {"sunday", val(Sunday == "T")},
-   {"adi_name", val(AdiName)},
-   {"adi_num", val(list_to_integer(Adi))},
-   {"ownership", val(Ownership)},
-   {"playground", val(Playground)},
-   {"seats", int(SeatCount)},
-   {"parking_spaces", int(ParkingSpaces)}
-  ]};
+  try
+    {_,[{_,Data}]} = RS,
+    [StoreInfo|_] = Data,
+    {Store, SiteCity, SiteState, SiteZip, Exterior, Interior, Restroom,
+     Breakfast, Sunday, AdiName, Adi, Ownership, Playground, SeatCount,
+     ParkingSpaces} = StoreInfo,
+    {obj, [
+	   {"store_num", val(Store)},
+	   {"city", val(SiteCity)},
+	   {"state", val(SiteState)},
+	   {"zip", val(SiteZip)},
+	   {"exterior", val(Exterior == "T")},
+	   {"interior", val(Interior == "T")},
+	   {"restroom", val(Restroom == "T")},
+	   {"breakfast", val(Breakfast == "T")},
+	   {"sunday", val(Sunday == "T")},
+	   {"adi_name", val(AdiName)},
+	   {"adi_num", val(list_to_integer(Adi))},
+	   {"ownership", val(Ownership)},
+	   {"playground", val(Playground)},
+	   {"seats", int(SeatCount)},
+	   {"parking_spaces", int(ParkingSpaces)}
+	  ]}
+  catch
+    _:_ ->
+      null
+  end;
 parse_storeinfo(tuple, RS) ->
-  {_,[{_,Data}]} = RS,
-  [StoreInfo|_] = Data,
-  {Store, SiteCity, SiteState, SiteZip, Exterior, Interior, Restroom,
-   Breakfast, Sunday, AdiName, Adi, Ownership, Playground, SeatCount,
-   ParkingSpaces} = StoreInfo,
-  [
-   {"store_num", val(Store)},
-   {"city", val(SiteCity)},
-   {"state", val(SiteState)},
-   {"zip", val(SiteZip)},
-   {"exterior", val(Exterior == "T")},
-   {"interior", val(Interior == "T")},
-   {"restroom", val(Restroom == "T")},
-   {"breakfast", val(Breakfast == "T")},
-   {"sunday", val(Sunday == "T")},
-   {"adi_name", val(AdiName)},
-   {"adi_num", val(list_to_integer(Adi))},
-   {"ownership", val(Ownership)},
-   {"playground", val(Playground)},
-   {"seats", int(SeatCount)},
-   {"parking_spaces", int(ParkingSpaces)}
-  ].
-
+  try
+    {_,[{_,Data}]} = RS,
+    [StoreInfo|_] = Data,
+    {Store, SiteCity, SiteState, SiteZip, Exterior, Interior, Restroom,
+     Breakfast, Sunday, AdiName, Adi, Ownership, Playground, SeatCount,
+     ParkingSpaces} = StoreInfo,
+    [
+     {"store_num", val(Store)},
+     {"city", val(SiteCity)},
+     {"state", val(SiteState)},
+     {"zip", val(SiteZip)},
+     {"exterior", val(Exterior == "T")},
+     {"interior", val(Interior == "T")},
+     {"restroom", val(Restroom == "T")},
+     {"breakfast", val(Breakfast == "T")},
+     {"sunday", val(Sunday == "T")},
+     {"adi_name", val(AdiName)},
+     {"adi_num", val(list_to_integer(Adi))},
+     {"ownership", val(Ownership)},
+     {"playground", val(Playground)},
+     {"seats", int(SeatCount)},
+     {"parking_spaces", int(ParkingSpaces)}
+    ]
+  catch
+    _:_ ->
+      null
+  end.
 
 
 val(Val) when is_list(Val) ->
