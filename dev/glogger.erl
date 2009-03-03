@@ -182,7 +182,7 @@ upread(Fd, Fun) ->
 upread(_Fd, {'EXIT', _}, _Fun, Acc) ->
   {ok, Acc};
 upread(Fd, Term, Fun, Acc) ->
-  Fun(Term),
+  _Pid = spawn(fun() -> Fun(Term) end),
   upread(Fd, catch get_term(Fd), Fun, Acc+1).
 
 
