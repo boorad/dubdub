@@ -7,10 +7,19 @@
 %%%-------------------------------------------------------------------
 
 -module(pnl_dsl).
--export([broker/0]).
-broker() ->
+
+-export([start/0]).
+
+start() ->
+  spawn(fun() ->
+	    loop()
+	end).
+
+loop() ->
+  io:format("entering loop...~n"),
   receive
     {sum, checks} ->
+      io:format("received {sum, checks}~n"),
       Map = fun(Pid, X) ->
 		 try
 		   %% filtering part (all checks, all stores)
@@ -29,12 +38,16 @@ broker() ->
 	     end,
 
       Reduce = fun(Key, Vals, A) ->
+		   io:format("in reduce...~n"),
 		   [{Key, sum(Vals)} | A]
 	       end,
       Results = node_manager:q(tuple, Map, Reduce, []),
       Msg = "Summing all checks ~p~n",
       io:format(Msg, [Results]),
-      broker()
+      loop();
+
+    _ ->
+      ok
   end.
 
 
