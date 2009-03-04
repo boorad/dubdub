@@ -177,13 +177,13 @@ warn(Fmt, As) ->
 upread(Fd, Fun) ->
   {ok, _Curr} = file:position(Fd, cur),
   file:position(Fd, bof),
-  upread(Fd, get_term(Fd), Fun).
+  upread(Fd, get_term(Fd), Fun, 0).
 
-upread(_Fd, {'EXIT', _}, _Fun) ->
-  ok;
-upread(Fd, Term, Fun) ->
+upread(_Fd, {'EXIT', _}, _Fun, Acc) ->
+  {ok, Acc};
+upread(Fd, Term, Fun, Acc) ->
   Fun(Term),
-  upread(Fd, catch get_term(Fd), Fun).
+  upread(Fd, catch get_term(Fd), Fun, Acc+1).
 
 
 get_term(Fd) ->

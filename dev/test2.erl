@@ -50,9 +50,6 @@ test() ->
 %%                    {[...],...},
 %%                    {...},...]}}}]}
 
-  %% hack to test on 'one node' for our tests, usually the local one.
-  %% TODO: do we need a fun to get the local node for convenience?
-  [Node | _T] = node_manager:get_all_nodes(),
 
   FMap = fun(Pid, X) ->
 	     try
@@ -74,11 +71,10 @@ test() ->
 		[{Key, sum(Vals)} | A]
 	   end,
 
-  {Time, Return} = timer:tc(db_manager, q, [Node, tuple, FMap, FReduce]),
-  [{ok, Results}] = Return, %% db_manager:q(Node, tuple, FMap, FReduce),
+  {Time, [Results]} = timer:tc(node_manager, q, [tuple, FMap, FReduce, []]),
 
-  io:format("Query Results     : ~p~n", [Results]),
-  io:format("Time (usec): ~p~n", [Time]),
+  io:format("Query Results : ~p~n", [Results]),
+  io:format("Time (ms)     : ~p~n", [Time/1000]),
 %%   io:format("Query Results Len : ~p~n", [length(Results)]),
   ok.
 

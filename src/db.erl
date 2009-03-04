@@ -15,7 +15,7 @@
 -define(SERVER, ?MODULE).
 
 %% API
--export([start_link/1, insert/2, get_all/1, get_docs_limit/2, get_count/1, q/4,
+-export([start_link/1, insert/2, get_all/1, get_docs_limit/2, get_count/1, q/5,
 	 truncate/1]).
 
 %% gen_server callbacks
@@ -52,8 +52,8 @@ insert(Node, V) ->
 %%   end;
 
 %% for all other data structures and query methods
-q(Db, Type, Map, Reduce) ->
-  gen_server:call(Db, {q, Type, Map, Reduce}).
+q(Db, Type, Map, Reduce, Acc0) ->
+  gen_server:call(Db, {q, Type, Map, Reduce, Acc0}).
 
 
 %% get all documents in the supplied DB
@@ -104,12 +104,12 @@ handle_call({insert, K, V}, _From, State) ->
   NewState = [{K,V} | State],
   {reply, {ok, insert}, NewState};
 
-handle_call({q, list, Filter, _Reduce}, _From, State) ->
+handle_call({q, list, Filter, _Reduce, _Acc0}, _From, State) ->
   Results = lists:filter(Filter, State),
   {reply, {ok, Results}, State};
 
-handle_call({q, tuple, Map, Reduce}, _From, State) ->
-  Results = phofs:mapreduce(Map, Reduce, [], State),
+handle_call({q, tuple, Map, Reduce, Acc0}, _From, State) ->
+  Results = phofs:mapreduce(Map, Reduce, Acc0, State),
   {reply, {ok, Results}, State};
 
 %% handle_call({q, match_spec, CompiledMatchSpec, _Reduce}, _From, State) ->
