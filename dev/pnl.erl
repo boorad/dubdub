@@ -10,6 +10,8 @@
 
 -export([all/0, test/0]).
 
+-include_lib("eunit/include/eunit.hrl").
+
 all() ->
   application:start(dubdub),
   testdata:load(),
@@ -20,12 +22,14 @@ test() ->
 	    try
 	      %% filtering part (all checks, all stores)
 	      {_Key, {{time, _Time},
-		      {store,_Store},
+		      {store, _Store},
 		      {data, Data}}} = X,
+	      %%?debugFmt("data: ~p~n", [Data]),
 	      %% send P&L line items (they're {K,V}) to reducer
 	      F = fun(LineItem) ->
-		      {_Acct, Val} = LineItem,
-		      Pid ! {"all_checks", Val}
+		      %%{Acct, Val} = LineItem,
+		      %%?debugFmt("~p~n", [Val]),
+		      Pid ! LineItem %%{Acct, Val}
 		  end,
 	      lists:foreach(F, Data)
 	    catch
@@ -36,9 +40,11 @@ test() ->
   Reduce = fun(Key, Vals, A) ->
 	       [{Key, sum(Vals)} | A]
 	   end,
-  Results = node_manager:q(tuple, Map, Reduce, []),
-  Msg = "Summing all checks ~p~n",
-  io:format(Msg, [Results]).
+
+  {Time, [Results]} = timer:tc(node_manager, q, [tuple, Map, Reduce, []]),
+  %%Results = node_manager:q(tuple, Map, Reduce, []),
+  Msg = "Summing all checks in ~p ms ~n~p~n",
+  io:format(Msg, [Time/1000, Results]).
 
 sum([H|T]) ->
   H + sum(T);

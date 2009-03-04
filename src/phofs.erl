@@ -65,6 +65,12 @@ collect_replies(N, Dict) ->
 	  collect_replies(N, Dict1)
       end;
     {'EXIT', _,  _Why} ->
+      case N rem 100 of
+	0 ->
+	  io:format("N: ~p~n", [N]);
+	_ ->
+	  ok
+      end,
       collect_replies(N-1, Dict)
   end.
 
