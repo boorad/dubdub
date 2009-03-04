@@ -5,7 +5,7 @@ use warnings;
 
 # Launch DubDub Master Instance and Attach test data
 use Getopt::Std;
-use Data::Dump qw/dump/;
+#use Data::Dump qw/dump/;
 use Net::Amazon::EC2;
 
 # Print shite immediately
@@ -72,8 +72,8 @@ foreach my $reservation (@$running_instances)
     }
 }
 
-print "\nExisting EC2 Instances: \n";
-print dump(@initialized_instances) . "\n";
+#print "\nExisting EC2 Instances: \n";
+#print dump(@initialized_instances) . "\n";
 
 my $num_init_instances = @initialized_instances;
 

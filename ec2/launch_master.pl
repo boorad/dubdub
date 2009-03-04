@@ -5,7 +5,7 @@ use warnings;
 
 # Launch DubDub Master Instance and Attach test data
 use Getopt::Std;
-use Data::Dump qw/dump/;
+#use Data::Dump qw/dump/;
 use Net::Amazon::EC2;
 
 use version 0.74; our $VERSION = qv('0.01');
@@ -68,7 +68,7 @@ my @instance_fields = split /\t/, $instance_info;
 
 my $instance_id = $instance_fields[4];
 
-print dump(@instance_fields);
+#print dump(@instance_fields);
 
 # Create EBS Volume for Data Store from Econ Snapshot
 print "\nCreating EBS Volumes from stats data...\n\n";
