@@ -10,7 +10,7 @@
 %% Parallel Higher Order FunctionS module
 
 -module(phofs).
--export([mapreduce/4]).
+-export([mapreduce/4, pmap/2]).
 
 -import(lists, [foreach/2]).
 
@@ -80,3 +80,22 @@ collect_replies(N, Dict) ->
 %%     and then terminate
 do_map(ReducePid, FMap, X) ->
   FMap(ReducePid, X).
+
+
+%% Parallelizing map.  Stolen verbatim from book.
+pmap(F, L) ->
+  S = self(),
+  Pids = lists:map(fun(I) ->
+		 spawn(fun() -> do_f(S, F, I) end)
+	     end, L),
+  gather(Pids).
+
+gather([H|T]) ->
+  receive
+    {H, Ret} -> [Ret|gather(T)]
+  end;
+gather([]) ->
+  [].
+
+do_f(Parent, F, I) ->
+  Parent ! {self(), (catch F(I))}.
