@@ -13,7 +13,7 @@
 
 %% API
 -export([start_link/0, register_node/1, next_node/1, get_all_nodes/0,
-	 get_all_db_data/0, get_counts/0, add_dbs/1]).
+	 get_all_db_data/0, get_counts/0, add_dbs/1, q/4]).
 
 -define(SERVER, ?MODULE).
 
@@ -73,6 +73,14 @@ get_counts() ->
 %% add Count db's to the cluster
 add_dbs(Count) ->
   add_dbs_loop(Count).
+
+
+%% querying
+q(Type, FMap, FReduce, Acc0) ->
+  map_nodes(fun(Node) ->
+		db_manager:q(Node, Type, FMap, FReduce, Acc0)
+	    end).
+
 
 %%====================================================================
 %% gen_server callbacks

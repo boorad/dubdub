@@ -19,7 +19,7 @@
 
 %% API
 -export([start_link/0, register_db/2, next_db/2, get_all_dbs/1,
-	 get_all_db_data/1, get_counts/1, add_db/1, q/4]).
+	 get_all_db_data/1, get_counts/1, add_db/1, q/5]).
 
 -define(SERVER, ?MODULE).
 
@@ -87,11 +87,21 @@ add_db(Node) ->
 
 %% Function: q(Node, Type, Map, Reduce) -> {ok, Results}
 %% Description: query the databases on the provided node, returning results.
-%%              as of now, this is rdbms style, m/r isn't quite working.
-q(Node, Type, Map, Reduce) ->
-  map_dbs(Node, fun(Db) ->
-		    db:q(Db, Type, Map, Reduce)
-		end).
+%%              The intermediate results are further m/r
+q(Node, Type, Map, Reduce, Acc0) ->
+  IntermediateResults =
+    map_dbs(Node, fun(Db) ->
+		      db:q(Db, Type, Map, Reduce, Acc0)
+		  end),
+  Data = [Data1 || {ok, Data1} <- IntermediateResults ],
+  IncrMap = fun(Pid, X) ->
+		F = fun(LineItem) ->
+			Pid ! LineItem
+		    end,
+		lists:foreach(F, X)
+	    end,
+  phofs:mapreduce(IncrMap, Reduce, [], Data).
+
 
 %%====================================================================
 %% gen_server callbacks
