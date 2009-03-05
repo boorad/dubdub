@@ -194,7 +194,7 @@ filter_worker(WorkerPid, Workers) ->
 %% convenience fun to map across all nodes
 map_nodes(NodeFun) ->
   Nodes = get_all_nodes(),
-  lists:map(NodeFun, Nodes).
+  phofs:pmap(NodeFun, Nodes).
 
 
 %% loop to add db's to the cluster.
