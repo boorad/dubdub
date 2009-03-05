@@ -53,8 +53,17 @@ insert(Node, V) ->
 
 %% for all other data structures and query methods
 q(Db, Type, Map, Reduce, Acc0) ->
-  gen_server:call(Db, {q, Type, Map, Reduce, Acc0}).
+  gen_server:call(Db, {q, Type, self(), Map, Reduce, Acc0}),
+  q_waitloop().
 
+q_waitloop() ->
+  receive
+    {query_ended, Results} ->
+      Results;
+    _ ->
+      ignored,
+      q_waitloop()
+  end.
 
 %% get all documents in the supplied DB
 get_all(Db) ->
@@ -104,13 +113,16 @@ handle_call({insert, K, V}, _From, State) ->
   NewState = [{K,V} | State],
   {reply, {ok, insert}, NewState};
 
-handle_call({q, list, Filter, _Reduce, _Acc0}, _From, State) ->
+handle_call({q, list, _Caller, Filter, _Reduce, _Acc0}, _From, State) ->
   Results = lists:filter(Filter, State),
   {reply, {ok, Results}, State};
 
-handle_call({q, tuple, Map, Reduce, Acc0}, _From, State) ->
-  Results = phofs:mapreduce(Map, Reduce, Acc0, State),
-  {reply, {ok, Results}, State};
+handle_call({q, tuple, Parent, Map, Reduce, Acc0}, _From, State) ->
+  spawn(fun() ->
+	    {Time, Results}  = timer:tc(phofs, mapreduce, [Map, Reduce, Acc0, State]),
+	    Parent ! {query_ended, [{results, Results}, {time, Time}, {db, self()}]}
+	end),
+  {reply, {ok, query_started}, State};
 
 %% handle_call({q, match_spec, CompiledMatchSpec, _Reduce}, _From, State) ->
 %%   Results = ets:match_spec_run(State, CompiledMatchSpec),

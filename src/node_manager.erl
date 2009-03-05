@@ -76,10 +76,18 @@ add_dbs(Count) ->
 
 
 %% querying
-q(Type, FMap, FReduce, Acc0) ->
-  map_nodes(fun(Node) ->
-		db_manager:q(Node, Type, FMap, FReduce, Acc0)
-	    end).
+q(Type, Map, Reduce, Acc0) ->
+  IntermediateResults =
+    map_nodes(fun(Node) ->
+		  db_manager:q(Node, Type, Map, Reduce, Acc0)
+	      end),
+  IncrMap = fun(Pid, X) ->
+		F = fun(LineItem) ->
+			Pid ! LineItem
+		    end,
+		lists:foreach(F, X)
+	    end,
+  phofs:mapreduce(IncrMap, Reduce, [], IntermediateResults).
 
 
 %%====================================================================
