@@ -71,7 +71,7 @@ test() ->
 		[{Key, sum(Vals)} | A]
 	   end,
 
-  {Time, [Results]} = timer:tc(node_manager, q, [tuple, FMap, FReduce, []]),
+  {Time, Results} = timer:tc(node_manager, q, [tuple, FMap, FReduce, []]),
 
   io:format("Query Results : ~p~n", [Results]),
   io:format("Time (ms)     : ~p~n", [Time/1000]),

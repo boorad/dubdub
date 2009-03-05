@@ -44,8 +44,8 @@ test() ->
 
   {Time, Results} = timer:tc(node_manager, q, [tuple, Map, Reduce, []]),
   %%Results = node_manager:q(tuple, Map, Reduce, []),
-  Msg = "Summing all checks in ~p ms ~n~p~n",
-  io:format(Msg, [Time/1000, Results]).
+  Msg = "Sum all checks: ~p~nTime (ms)     : ~p ms~n",
+  io:format(Msg, [Results, Time/1000]).
 
 sum([H|T]) ->
   H + sum(T);
