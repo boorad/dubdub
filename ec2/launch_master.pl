@@ -78,7 +78,7 @@ my ($volume_id, $ebs_info, @ebs_fields);
 EBS: while ($ebs_success)
 {
     $ebs_info =
-      `ec2-create-volume -s 230 -z us-east-1a --snapshot snap-0bdf3f62`;
+      `ec2-create-volume -s 300 -z us-east-1a --snapshot snap-b04ba2d9`;
 
     # Mulligan if we get a timeout.
     if ($ebs_info =~ m/timeout/g)
