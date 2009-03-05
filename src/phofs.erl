@@ -82,20 +82,57 @@ do_map(ReducePid, FMap, X) ->
   FMap(ReducePid, X).
 
 
-%% Parallelizing map.  Stolen verbatim from book.
-pmap(F, L) ->
-  S = self(),
-  Pids = lists:map(fun(I) ->
-		 spawn(fun() -> do_f(S, F, I) end)
-	     end, L),
-  gather(Pids).
+%% %% Parallelizing map.  Stolen verbatim from book.
+%% pmap(F, L) ->
+%%     S = self(),
+%%     %% make_ref() returns a unique reference
+%%     %%   we'll match on this later
+%%     Ref = erlang:make_ref(),
+%%     Pids = lists:map(fun(I) ->
+%% 		       spawn(fun() -> do_f(S, Ref, F, I) end)
+%% 	       end, L),
+%%     %% gather the results
+%%     gather(Pids, Ref).
 
-gather([H|T]) ->
+%% do_f(Parent, Ref, F, I) ->
+%%     Parent ! {self(), Ref, (catch F(I))}.
+
+%% gather([Pid|T], Ref) ->
+%%     receive
+%% 	{Pid, Ref, Ret} -> [Ret|gather(T, Ref)]
+%%     end;
+%% gather([], _) ->
+%%     [].
+
+
+
+
+%% pmap1(F, L) ->
+%%     S = self(),
+%%     Ref = erlang:make_ref(),
+%%     foreach(fun(I) ->
+%% 		    spawn(fun() -> do_f1(S, Ref, F, I) end)
+%% 	    end, L),
+%%     %% gather the results
+%%     gather1(length(L), Ref, []).
+
+%% do_f1(Parent, Ref, F, I) ->
+%%     Parent ! {Ref, (catch F(I))}.
+
+%% gather1(0, _, L) -> L;
+%% gather1(N, Ref, L) ->
+%%     receive
+%% 	{Ref, Ret} -> gather1(N-1, Ref, [Ret|L])
+%%     end.
+
+pmap(F,List) ->
+  [wait_result(Worker) || Worker <- [spawn_worker(self(),F,E) || E <- List]].
+
+spawn_worker(Parent, F, E) ->
+  erlang:spawn_monitor(fun() -> Parent ! {self(), F(E)} end).
+
+wait_result({Pid,Ref}) ->
   receive
-    {H, Ret} -> [Ret|gather(T)]
-  end;
-gather([]) ->
-  [].
-
-do_f(Parent, F, I) ->
-  Parent ! {self(), (catch F(I))}.
+    {'DOWN', Ref, _, _, normal} -> receive {Pid,Result} -> Result end;
+    {'DOWN', Ref, _, _, Reason} -> exit(Reason)
+  end.
