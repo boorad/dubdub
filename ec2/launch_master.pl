@@ -8,7 +8,7 @@ use Getopt::Std;
 #use Data::Dump qw/dump/;
 use Net::Amazon::EC2;
 
-use version 0.74; our $VERSION = qv('0.01');
+#use version 0.74; our $VERSION = qv('0.01');
 
 # Print shite immediately
 $|=1;

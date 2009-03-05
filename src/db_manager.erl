@@ -226,4 +226,4 @@ filter_db(DBPid, DBs) ->
 %% convenience fun to map across all db's on the provided node
 map_dbs(Node, DbFun) ->
   DBs = get_all_dbs(Node),
-  lists:map(DbFun, DBs).
+  phofs:pmap(DbFun, DBs).

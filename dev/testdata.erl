@@ -20,7 +20,7 @@
 
 %% shouldn't need to touch these, unless you want to update the BULK_CNT for
 %% optimizing bulk load efficiency
--define(DAT_FILE, "../dev/" ++ atom_to_list(?OUTPUT_FORMAT) ++ ".dat").
+-define(DAT_FILE, "../dev/data/" ++ atom_to_list(?OUTPUT_FORMAT) ++ ".dat").
 -define(BULK_CNT, 25).
 
 
