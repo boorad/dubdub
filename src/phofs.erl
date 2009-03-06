@@ -105,8 +105,7 @@ do_map(ReducePid, FMap, X) ->
 %%     [].
 
 
-
-
+%% %% pmap that doesn't care about order returned
 %% pmap1(F, L) ->
 %%     S = self(),
 %%     Ref = erlang:make_ref(),
@@ -125,6 +124,8 @@ do_map(ReducePid, FMap, X) ->
 %% 	{Ref, Ret} -> gather1(N-1, Ref, [Ret|L])
 %%     end.
 
+
+%% pmap from Luke Gorrie and http://lukego.livejournal.com/6753.html
 pmap(F,List) ->
   [wait_result(Worker) || Worker <- [spawn_worker(self(),F,E) || E <- List]].
 

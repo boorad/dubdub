@@ -91,17 +91,17 @@ add_db(Node) ->
 q(Node, Type, Map, Reduce, Acc0) ->
   IntermediateResults =
     map_dbs(Node, fun(Db) ->
-		      db:q(Db, Type, Map, Reduce, Acc0)
+		      RS = db:q(Db, Type, Map, Reduce, Acc0),
+		      [{results, Results}, {time, _Time}, {db, _Db}] = RS,
+		      Results
 		  end),
-  IntermediateResults.
-%%   Data = [Data1 || {ok, Data1} <- IntermediateResults ],
-%%   IncrMap = fun(Pid, X) ->
-%% 		F = fun(LineItem) ->
-%% 			Pid ! LineItem
-%% 		    end,
-%% 		lists:foreach(F, X)
-%% 	    end,
-%%   phofs:mapreduce(IncrMap, Reduce, [], Data).
+  IncrMap = fun(Pid, X) ->
+		F = fun(LineItem) ->
+			Pid ! LineItem
+		    end,
+		lists:foreach(F, X)
+	    end,
+  phofs:mapreduce(IncrMap, Reduce, [], IntermediateResults).
 
 
 %%====================================================================
