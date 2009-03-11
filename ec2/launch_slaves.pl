@@ -83,9 +83,9 @@ print "\nMaster nodename: $master_nodename\n";
 
 # Launch all the slaves.
 my $instance_command =
-    "ec2-run-instances "
+    "ec2-run-instances " . " -g $cluster_name "
   . $AMI_NAME . " -k "
-  . $cluster_name
+  . $cluster_name 
   . ".keypair --instance-type m1.small -z us-east-1a -n $num_slaves";
 print "$instance_command\n";
 print "\nLaunching slave instance(s)...\n";
