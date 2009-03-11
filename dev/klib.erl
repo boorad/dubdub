@@ -17,26 +17,26 @@
 %% A general purpose with_file function
 
 with_file(File, Fun, Initial) ->
-    case file:open(File, [read, raw, binary]) of
+  case file:open(File, [read, raw, binary]) of
 	{ok, Fd} ->
-	    Res = feed(Fd, file:read(Fd, 1024), Fun, Initial),
-	    file:close(Fd),
-	    Res;
+      Res = feed(Fd, file:read(Fd, 1024), Fun, Initial),
+      file:close(Fd),
+      Res;
 	{error, Reason} ->
-	    {error, Reason}
-    end.
+      {error, Reason}
+  end.
 
 feed(Fd, {ok, Bin}, Fun, Farg) ->
-    case Fun(Bin, Farg) of
+  case Fun(Bin, Farg) of
 	{done, Res} ->
-	    Res;
+      Res;
 	{more, Ack} ->
-	    feed(Fd, file:read(Fd, 1024), Fun, Ack)
-    end;
+      feed(Fd, file:read(Fd, 1024), Fun, Ack)
+  end;
 feed(_Fd, eof, _Fun, Ack) ->
-    Ack;
+  Ack;
 feed(_Fd, {error, Reason}, _Fun, _Ack) ->
-    {error, Reason}.
+  {error, Reason}.
 
 
 
