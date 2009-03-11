@@ -13,7 +13,7 @@
 
 %% API
 -export([start_link/0, register_node/1, next_node/1, get_all_nodes/0,
-	 get_all_db_data/0, get_counts/0, add_dbs/1, q/4]).
+	 get_all_db_data/0, get_counts/0, add_dbs/1, q/4, get_one/0]).
 
 -define(SERVER, ?MODULE).
 
@@ -88,6 +88,13 @@ q(Type, Map, Reduce, Acc0) ->
 		lists:foreach(F, X)
 	    end,
   phofs:mapreduce(IncrMap, Reduce, [], IntermediateResults).
+
+
+get_one() ->
+  Method = roundrobin,
+  Node = next_node(Method),
+  Db = db_manager:next_db(Node, Method),
+  db:get_docs_limit(Db, 1).
 
 
 %%====================================================================
