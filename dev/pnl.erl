@@ -39,15 +39,10 @@ test() ->
         end,
 
   Reduce = fun(Key, Vals, A) ->
-               [{Key, sum(Vals)} | A]
+               [{Key, utils:sum(Vals)} | A]
            end,
 
   {Time, Results} = timer:tc(node_manager, q, [tuple, Map, Reduce, []]),
   %%Results = node_manager:q(tuple, Map, Reduce, []),
   Msg = "Sum all checks: ~p~nTime (ms)     : ~p ms~n",
   io:format(Msg, [Results, Time/1000]).
-
-sum([H|T]) ->
-  H + sum(T);
-sum([]) ->
-  0.

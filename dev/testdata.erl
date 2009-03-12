@@ -30,10 +30,10 @@
 
 %% generates .dat file based on data in pgsql (on boorad's local)
 gen() ->
-  ensure_started(inets),
+  utils:ensure_started(inets),
 
   %% get psql ready, and loop thru resultset
-  ensure_started(psql),
+  utils:ensure_started(psql),
   Pid = psql:allocate(),
   MonthStoreQuery = get_month_store_query(),
   {_,[{_,MonthStoreRS}]} = psql:sql_query(Pid, MonthStoreQuery),
@@ -63,13 +63,6 @@ load() ->
 %% Local Functions
 %%
 
-ensure_started(App) ->
-  case application:start(App) of
-    ok ->
-      ok;
-    {error, {already_started, App}} ->
-      ok
-  end.
 
 
 %% write list of docs (erlang terms) out to .dat file
