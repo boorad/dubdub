@@ -81,13 +81,19 @@ q(Type, Map, Reduce, Acc0) ->
     map_nodes(fun(Node) ->
 		  db_manager:q(Node, Type, Map, Reduce, Acc0)
 	      end),
-  IncrMap = fun(Pid, X) ->
-		F = fun(LineItem) ->
-			Pid ! LineItem
-		    end,
-		lists:foreach(F, X)
-	    end,
-  phofs:mapreduce(IncrMap, Reduce, [], IntermediateResults).
+  case length(IntermediateResults) of
+    1 ->
+      [Results] = IntermediateResults,
+      Results;
+    _ ->
+      IncrMap = fun(Pid, X) ->
+                    F = fun(LineItem) ->
+                            Pid ! LineItem
+                        end,
+                    lists:foreach(F, X)
+                end,
+      phofs:mapreduce(IncrMap, Reduce, [], IntermediateResults)
+  end.
 
 
 get_one() ->

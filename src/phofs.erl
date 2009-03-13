@@ -42,7 +42,7 @@ reduce(Parent, FMap, FReduce, Acc0, L) ->
   Dict0 = dict:new(),
   %% Wait for N Map processes to terminate
   %% TODO: handle fewer than N processes terminating?  in collect_replies/2 ?
-  Dict1 = collect_replies(N, Dict0),
+  Dict1 = collect_replies(N, Dict0, 0),
   Acc = dict:fold(FReduce, Acc0, Dict1),
   Parent ! {self(), Acc}.
 
@@ -51,27 +51,33 @@ reduce(Parent, FMap, FReduce, Acc0, L) ->
 %%     collect and merge {Key, Value} messages from N processes.
 %%     When N processes have terminated return a dictionary
 %%     of {Key, [Value]} pairs
-collect_replies(0, Dict) ->
+collect_replies(0, Dict, MapCount) ->
+  io:format("omg, ~w map msgs sent~n", [MapCount]),
   Dict;
-collect_replies(N, Dict) ->
+collect_replies(N, Dict, MapCount) ->
   receive
     {Key, Val} ->
+%%       case N =:= 1 of
+%%         true -> io:format("~p ", [Key]);
+%%         _ -> ok
+%%       end,
       case dict:is_key(Key, Dict) of
-	true ->
-	  Dict1 = dict:append(Key, Val, Dict),
-	  collect_replies(N, Dict1);
-	false ->
-	  Dict1 = dict:store(Key,[Val], Dict),
-	  collect_replies(N, Dict1)
+        true ->
+          Dict1 = dict:append(Key, Val, Dict),
+          collect_replies(N, Dict1, MapCount+1);
+        false ->
+          Dict1 = dict:store(Key,[Val], Dict),
+          collect_replies(N, Dict1, MapCount+1)
       end;
     {'EXIT', _,  _Why} ->
 %%       case N rem 100 of
 %%         0 ->
-%%           io:format("N: ~p~n", [N]);
+%%           io:format("N      : ~p~nDictLen: ~p~n", [N, size(Dict)]);
 %%         _ ->
 %%           ok
 %%       end,
-      collect_replies(N-1, Dict)
+%%       io:format("dict: ~p~n", [size(Dict)]),
+      collect_replies(N-1, Dict, MapCount)
   end.
 
 
