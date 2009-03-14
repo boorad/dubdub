@@ -19,6 +19,9 @@ EOF
 BOOT=
 WORKER=
 
+ERL_OPTS="-kernel inet_dist_listen_min 4000 inet_dist_listen_max 4200 +P1000000 -s dubdub_app -setcookie mysecretcookie"
+
+
 while getopts “h:m:b:n:dw” OPTION
 do
      case $OPTION in
@@ -35,7 +38,6 @@ do
 	 n)
              NAME=$OPTARG
              ;;
-             
 	 w)
              WORKER=$OPTARG
              ;;
@@ -58,9 +60,9 @@ done
 # Feed master nodename to slaves
 if test -z "$MASTER"
 then
-    echo "erl -name $NAME -kernel inet_dist_listen_min 4000 inet_dist_listen_max 4200 -s dubdub_app -setcookie mysecretcookie $DETACHED"
-    erl -name $NAME -kernel inet_dist_listen_min 4000 inet_dist_listen_max 4200 -s dubdub_app -setcookie mysecretcookie $DETACHED
+    echo "erl -name $NAME $ERL_OPTS $DETACHED"
+    erl -name $NAME $ERL_OPTS $DETACHED
 else
-    echo "erl -m $MASTER -name $NAME -kernel inet_dist_listen_min 4000 inet_dist_listen_max 4200 -s dubdub_app -setcookie mysecretcookie $DETACHED"
-    erl -m $MASTER -name $NAME -kernel inet_dist_listen_min 4000 inet_dist_listen_max 4200 -s dubdub_app -setcookie mysecretcookie $DETACHED
+    echo "erl -m $MASTER -name $NAME $ERL_OPTS $DETACHED"
+    erl -m $MASTER -name $NAME $ERL_OPTS $DETACHED
 fi
