@@ -2,13 +2,15 @@
 
 -export([all/1, load/2, test/0]).
 
+-include_lib("eunit/include/eunit.hrl").
+
 -define(PATH, "../dev/data/").
 
 
 all(Dbs) ->
   utils:ensure_started(dubdub),
   node_manager:add_dbs(Dbs-1),
-  load(moby, 1),
+  load(moby, 10),
   test().
 
 
@@ -48,10 +50,11 @@ test() ->
             lists:foreach(fun(Word) -> Pid ! {Word, 1} end, Line)
         end,
 
-  Reduce = fun(Key, Vals, A) ->
-               [{Key, utils:sum(Vals)} | A]
+  Reduce = fun({Key, Vals}, Acc) ->
+               [{Key, utils:sum(Vals)} | Acc]
            end,
 
   {Time, Results} = timer:tc(node_manager, q, [tuple, Map, Reduce, []]),
   Msg = "word count: ~p~nTime (ms)  : ~p ms~n",
+%%  io:format(Msg, [Results, Time/1000]).
   io:format(Msg, [length(Results), Time/1000]).

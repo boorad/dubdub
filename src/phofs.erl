@@ -10,9 +10,10 @@
 %% Parallel Higher Order FunctionS module
 
 -module(phofs).
+
 -export([mapreduce/4, pmap/2]).
 
--import(lists, [foreach/2]).
+-include_lib("eunit/include/eunit.hrl").
 
 
 %% FMap(Pid, X) -> sends {Key,Val} messages to Pid
@@ -29,55 +30,53 @@ mapreduce(FMap, FReduce, Acc0, L) ->
 
 
 %% the reduce function process (running Pid from mapreduce/4)
-reduce(Parent, FMap, FReduce, Acc0, L) ->
+reduce(Parent, Map, Reduce, Acc0, L) ->
   process_flag(trap_exit, true),
   ReducePid = self(),
+
   %% Create the Map processes
   %%   One for each element X in L
-  foreach(fun(X) ->
-	      spawn_link(fun() -> do_map(ReducePid, FMap, X) end)
-	  end, L),
+  lists:foreach(fun(X) ->
+                    spawn_link(fun() -> do_map(ReducePid, Map, X) end)
+                end, L),
   N = length(L),
-  %% make a dictionary to store the Keys
-  Dict0 = dict:new(),
+
+  %% make an ets table to store the [{K,[V]}] results
+  Table = ets:new('reduce', [set, private]),
+
   %% Wait for N Map processes to terminate
-  %% TODO: handle fewer than N processes terminating?  in collect_replies/2 ?
-  Dict1 = collect_replies(N, Dict0, 0),
-  Acc = dict:fold(FReduce, Acc0, Dict1),
-  Parent ! {self(), Acc}.
+  %% TODO: handle fewer than N processes terminating?  in collect_replies ?
+  Results = case collect_replies(N, Table, 0) of
+              ok ->
+                ets:foldl(Reduce, Acc0, Table);
+              Error ->
+                Error
+            end,
+  Parent ! {self(), Results}.
 
 
-%% collect_replies(N, Dict)
+%% collect_replies(N, Table, Count)
 %%     collect and merge {Key, Value} messages from N processes.
-%%     When N processes have terminated return a dictionary
-%%     of {Key, [Value]} pairs
-collect_replies(0, Dict, MapCount) ->
-  io:format("omg, ~w map msgs sent~n", [MapCount]),
-  Dict;
-collect_replies(N, Dict, MapCount) ->
+%%     When N processes have terminated return ok
+collect_replies(0, _Table, MapCount) ->
+  io:format("~w map msgs sent~n", [MapCount]),
+  ok;
+collect_replies(N, Table, MapCount) ->
   receive
     {Key, Val} ->
-%%       case N =:= 1 of
-%%         true -> io:format("~p ", [Key]);
-%%         _ -> ok
-%%       end,
-      case dict:is_key(Key, Dict) of
-        true ->
-          Dict1 = dict:append(Key, Val, Dict),
-          collect_replies(N, Dict1, MapCount+1);
-        false ->
-          Dict1 = dict:store(Key,[Val], Dict),
-          collect_replies(N, Dict1, MapCount+1)
-      end;
+      Lookup = ets:lookup(Table, Key),
+      NewVal = case Lookup of
+                 [] ->
+                   [Val];
+                 _ ->
+                   [{Key, OldVal}] = Lookup,
+                   lists:flatten([Val, OldVal])
+               end,
+      %% don't care if overwrite
+      ets:insert(Table, {Key, NewVal}),
+      collect_replies(N, Table, MapCount+1);
     {'EXIT', _,  _Why} ->
-%%       case N rem 100 of
-%%         0 ->
-%%           io:format("N      : ~p~nDictLen: ~p~n", [N, size(Dict)]);
-%%         _ ->
-%%           ok
-%%       end,
-%%       io:format("dict: ~p~n", [size(Dict)]),
-      collect_replies(N-1, Dict, MapCount)
+      collect_replies(N-1, Table, MapCount)
   end.
 
 
@@ -111,7 +110,7 @@ do_map(ReducePid, FMap, X) ->
 %%     [].
 
 
-%% %% pmap that doesn't care about order returned
+%% %% pmap that doesn't care about order returned (also from book)
 %% pmap1(F, L) ->
 %%     S = self(),
 %%     Ref = erlang:make_ref(),
