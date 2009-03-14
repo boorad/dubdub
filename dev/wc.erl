@@ -1,47 +1,42 @@
 -module(wc).
 
--export([all/1, load/2, test/0]).
+-export([all/2, load/1, test/0]).
 
 -include_lib("eunit/include/eunit.hrl").
 
 -define(PATH, "../dev/data/").
+-define(BOOK, "moby_dick.txt").
 
 
-all(Dbs) ->
+all(Dbs, Books) ->
   utils:ensure_started(dubdub),
   node_manager:add_dbs(Dbs-1),
-  load(moby, 10),
-  test().
+  load(Books),
+  test(),
+  dubdub:stop().
 
 
 %% load a certain number of books into dubdub
-load(_Book, 0) ->
+load(0) ->
   ok;
-load(Book, Count) ->
-  Book1 = case is_atom(Book) of
-            true ->
-              atom_to_list(Book);
-            _ ->
-              Book
-          end,
-  {ok, Files} = file:list_dir(?PATH ++ Book1),
-  Fun = fun(File) ->
-            Filename = ?PATH ++ Book1 ++ "/" ++ File,
-            %% io:format("loading ~p~n", [Filename]),
-            case file:read_file(Filename) of
-              {ok, Chapter} ->
-                Lines = string:tokens(binary_to_list(Chapter), "\n"),
-                LineFun = fun(Line) ->
-                              Words = string:tokens(Line, "\n-\t().!?,;:\" "),
-                              dataloader:insert({Book1, Count, Words})
-                          end,
-                lists:foreach(LineFun, Lines);
-              {error, Reason} ->
-                io:format("barf: ~p~n", [Reason])
-            end
-        end,
-  lists:foreach(Fun, Files),
-  load(Book, Count-1).
+load(Count) ->
+  Filename = ?PATH ++ ?BOOK,
+  %% io:format("loading ~p~n", [Filename]),
+  case file:read_file(Filename) of
+    {ok, Chapter} ->
+      Lines = string:tokens(binary_to_list(Chapter), "\r\n"),
+      LineFun = fun(Line) ->
+                    Words = string:tokens(Line, "\n-\t().!?,;:\" "),
+                    Words1 = lists:map(fun(Word) ->
+                                           list_to_binary(Word)
+                                       end, Words),
+                    dataloader:insert({?BOOK, Count, Words1})
+                end,
+      lists:foreach(LineFun, Lines);
+    {error, Reason} ->
+      io:format("barf: ~p~n", [Reason])
+  end,
+  load(Count-1).
 
 
 test() ->

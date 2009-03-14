@@ -58,8 +58,8 @@ reduce(Parent, Map, Reduce, Acc0, L) ->
 %% collect_replies(N, Table, Count)
 %%     collect and merge {Key, Value} messages from N processes.
 %%     When N processes have terminated return ok
-collect_replies(0, _Table, MapCount) ->
-  io:format("~w map msgs sent~n", [MapCount]),
+collect_replies(0, _Table, _MapCount) ->
+  %%?debugFmt("~w map msgs sent~n", [MapCount]),
   ok;
 collect_replies(N, Table, MapCount) ->
   receive

@@ -95,9 +95,9 @@ truncate(Db) ->
 %%                         {stop, Reason}
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
-init([InstanceId]) ->
+init([_InstanceId]) ->
   process_flag(trap_exit, true),
-  io:format("starting DB ~p...~n", [InstanceId]),
+  %%io:format("starting DB ~p...~n", [InstanceId]),
   {ok, []}.
 
 %%--------------------------------------------------------------------
