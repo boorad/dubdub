@@ -29,6 +29,8 @@ my $AMI_NAME = $opts{a} || 'ami-5ccd2a35';
 my $key_id     = $opts{i} || $ENV{AWS_ACCESS_KEY_ID};
 my $secret_key = $opts{k} || $ENV{AWS_SECRET_ACCESS_KEY};
 
+my $instance_type = $opts{t} || 'm1.small';
+
 print "\nChecking keypair...\n";
 
 # Only create a keypair if it does not already exist
@@ -76,7 +78,7 @@ my $instance_command =
     "ec2-run-instances " . " -g $cluster_name "
   . $AMI_NAME . " -k "
   . $cluster_name
-  . ".keypair --instance-type m1.small -z us-east-1a -n 1";
+  . ".keypair --instance-type $instance_type -z us-east-1a -n 1";
 print "$instance_command\n";
 print "\nLaunching master instance...\n";
 my $instance_info = `$instance_command`;
@@ -186,7 +188,7 @@ while ($booted == 0)
                   . $cluster_name
                   . ".pem root@"
                   . $instance->dns_name
-                  . " 'pwd;cd dubdub/src;pwd;make clean;make'";
+                  . " 'pwd;cd dubdub;pwd;make clean;make'";
 
                 print "\nCommand: $boot\n";
                 system($boot);

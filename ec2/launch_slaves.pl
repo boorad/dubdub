@@ -24,6 +24,8 @@ unless ($opts{m})
     die "Master hostname (-m) required!";
 }
 
+my $instance_type = $opts{t} || 'm1.small';
+
 my $cluster_name    = $opts{n};
 my $master_hostname = $opts{m};
 my $master_nodename = "boot\@$master_hostname";
@@ -86,7 +88,7 @@ my $instance_command =
     "ec2-run-instances " . " -g $cluster_name "
   . $AMI_NAME . " -k "
   . $cluster_name 
-  . ".keypair --instance-type m1.small -z us-east-1a -n $num_slaves";
+  . ".keypair --instance-type $instance_type -z us-east-1a -n $num_slaves";
 print "$instance_command\n";
 print "\nLaunching slave instance(s)...\n";
 my $instance_info = `$instance_command`;
