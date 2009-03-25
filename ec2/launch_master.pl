@@ -143,11 +143,11 @@ while ($booted == 0)
                   . " -d /dev/sdf";
                 print "\nCommand: $attach_command\n";
                 system($attach_command);
-                
+
 
                 print "\nWaiting 30 seconds for master to boot to mount EBS Volume...\n";
                 sleep 30;
-                
+
                 # First things first, set this thing to die in 50 minutes to save cash
                 print "\nConfiguring Master to die in 50 minutes...\n";
                 my $shut =
@@ -177,10 +177,16 @@ while ($booted == 0)
                   . ".pem root@"
                   . $instance->dns_name
                   . " 'pwd;cd dubdub;pwd;git pull;echo \"We pulled git!\n\"'";
-                  
+
                 print "\nCommand: $git\n";
                 system($git);
-                
+
+                # Get ze data
+                my $wget = "wget -O /root/dubdub/dev/data/tuple.dat "
+                  . "http://www.perfcloud.com/tuple.dat";
+                print "\nCommand: $wget\n";
+                system($wget);
+
                 # Launch ze server
                 print "\nActivating boot node...\n";
                 my $boot =
@@ -192,10 +198,10 @@ while ($booted == 0)
 
                 print "\nCommand: $boot\n";
                 system($boot);
-                
+
                 # Assign master hostname for booting slaves
                 $master_hostname = $instance->private_dns_name;
-                
+
                 print "\n\nMaster hostname for slaves will be: $master_hostname\n\nYou will soon be in erl console, then try something like ./launch_slaves.pl -n $cluster_name -s 5 -m $master_hostname";
 
                 # Launch ze server
@@ -209,7 +215,7 @@ while ($booted == 0)
 
                 print "\nCommand: $runage\n";
                 system($runage);
-                
+
             }
             else
             {
