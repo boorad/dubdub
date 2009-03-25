@@ -1,6 +1,6 @@
 -module(dubdub).
 
--export([start/0,stop/0,restart/0]).
+-export([start/0, stop/0, restart/0, test/0]).
 
 start() ->
   application:start(dubdub).
@@ -11,3 +11,6 @@ stop() ->
 restart() ->
   stop(),
   start().
+
+test() ->
+  test_suite:test().

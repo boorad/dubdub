@@ -8,15 +8,16 @@
 
 -module(pnl).
 
--export([all/0, test/0]).
+-export([all/2, test/0]).
 
 -include_lib("eunit/include/eunit.hrl").
 
-all() ->
-  application:start(dubdub),
-  node_manager:add_dbs(4),
-  testdata:load(),
-  test().
+all(Dbs, DupeLoads) ->
+  utils:ensure_started(dubdub),
+  node_manager:add_dbs(Dbs-1),
+  load(DupeLoads),
+  test(),
+  dubdub:stop().
 
 test() ->
   Map = fun(Pid, X) ->
@@ -25,11 +26,8 @@ test() ->
               {_Key, {{time, _Time},
                       {store, _Store},
                       {data, Data}}} = X,
-              %%?debugFmt("data: ~p~n", [Data]),
               %% send P&L line items (they're {K,V}) to reducer
               F = fun(LineItem) ->
-                      %%{Acct, Val} = LineItem,
-                      %%?debugFmt("~p~n", [Val]),
                       Pid ! LineItem %%{Acct, Val}
                   end,
               lists:foreach(F, Data)
@@ -38,11 +36,17 @@ test() ->
             end
         end,
 
-  Reduce = fun(Key, Vals, A) ->
+  Reduce = fun({Key, Vals}, A) ->
                [{Key, utils:sum(Vals)} | A]
            end,
 
   {Time, Results} = timer:tc(node_manager, q, [tuple, Map, Reduce, []]),
-  %%Results = node_manager:q(tuple, Map, Reduce, []),
   Msg = "Sum all checks: ~p~nTime (ms)     : ~p ms~n",
   io:format(Msg, [Results, Time/1000]).
+
+%% internal functions
+load(0) ->
+  ok;
+load(Count) ->
+  testdata:load(),
+  load(Count-1).

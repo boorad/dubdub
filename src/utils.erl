@@ -11,7 +11,7 @@ sum([]) ->
   0.
 
 
-%% 
+%%
 %% @doc make sure an OTP application is started
 ensure_started(App) ->
   case application:start(App) of
