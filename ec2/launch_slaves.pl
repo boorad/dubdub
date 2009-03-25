@@ -87,7 +87,7 @@ print "\nMaster nodename: $master_nodename\n";
 my $instance_command =
     "ec2-run-instances " . " -g $cluster_name "
   . $AMI_NAME . " -k "
-  . $cluster_name 
+  . $cluster_name
   . ".keypair --instance-type $instance_type -z us-east-1a -n $num_slaves";
 print "$instance_command\n";
 print "\nLaunching slave instance(s)...\n";
@@ -129,7 +129,7 @@ while (@initialized_instances < ($num_slaves + $num_init_instances))
                     print "\nInstance $internal_name / $instance_name state: "
                       . $instance->instance_state->name
                       . "we will sleep 30 seconds while it boots...\n";
-    
+
                     # None of the other instances need to sleep, they wil be well booted.
                     $first_instance = 0;
                     sleep 30;
@@ -190,4 +190,3 @@ while (@initialized_instances < ($num_slaves + $num_init_instances))
         }
     }
 }
-

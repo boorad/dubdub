@@ -182,8 +182,12 @@ while ($booted == 0)
                 system($git);
 
                 # Get ze data
-                my $wget = "wget -O /root/dubdub/dev/data/tuple.dat "
-                  . "http://www.perfcloud.com/tuple.dat";
+                my $wget =
+                    "ssh -o StrictHostKeyChecking=no -i ~/.ec2/"
+                  . $cluster_name
+                  . ".pem root@"
+                  . $instance->dns_name
+                  . " 'pwd;cd dubdub/dev/data; wget http://www.perfcloud.com/tuple.dat'";
                 print "\nCommand: $wget\n";
                 system($wget);
 
